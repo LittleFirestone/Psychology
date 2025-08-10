@@ -1,59 +1,386 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Healing Diary</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Healing Diary – Pastel Rainbow</title>
 
-    <!-- Tailwind (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-slate-50 text-slate-800">
-    <div id="root" class="p-6">Loading…</div>
+  <!-- Tailwind (CDN build) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // tiny, readable Tailwind config
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pastel: {
+              pink:  "#ffd1dc",
+              peach: "#ffd8b1",
+              yellow:"#fff3b0",
+              mint:  "#b8f2e6",
+              aqua:  "#a0e7e5",
+              lilac: "#d7c7ff",
+              sky:   "#cfe8ff",
+              slate: "#445566"
+            }
+          },
+          boxShadow: {
+            soft: "0 8px 30px rgba(0,0,0,.08)"
+          }
+        }
+      }
+    }
+  </script>
 
-    <!-- React 18 (UMD) + ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- React + ReactDOM + Babel (for JSX in-browser) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Babel (so we can write JSX inline) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    /* subtle rainbow border utility */
+    .rainbow-border {
+      position: relative;
+    }
+    .rainbow-border::before {
+      content: "";
+      position: absolute; inset: -2px;
+      border-radius: 16px;
+      background: linear-gradient(120deg,
+        #ffd1dc, #ffd8b1, #fff3b0, #b8f2e6, #a0e7e5, #d7c7ff, #cfe8ff);
+      z-index: -1;
+      filter: saturate(1.1);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-white to-pastel-sky/40 text-slate-800">
+  <div class="mx-auto max-w-6xl p-4 sm:p-6">
+    <header class="mb-6">
+      <h1 class="text-3xl sm:text-4xl font-bold tracking-tight">
+        Healing Diary <span class="text-slate-500">· Pastel Rainbow</span>
+      </h1>
+      <p class="text-slate-600">Jot therapy notes, skills, and insights. Everything saves locally.</p>
+    </header>
 
-    <!-- Your app (keep type=text/babel so JSX compiles in the browser) -->
-    <script type="text/babel">
-      // If something throws, show the error on the page so it’s never blank.
-      const showError = (err) => {
-        const el = document.getElementById('root');
-        el.className = 'p-6 text-red-600 whitespace-pre-wrap';
-        el.textContent = 'App failed to load:\\n\\n' + (err?.stack || err);
+    <div id="root"></div>
+  </div>
+
+  <script type="text/babel">
+    const {useEffect, useMemo, useState} = React;
+
+    // ---- Templates ---------------------------------------------------------
+    const CHAPTER_TEMPLATES = {
+      narrative: {
+        title: "Narrative",
+        placeholder:
+`Set the scene. Who/where/when? What happened? What did you feel? What meaning did you make?`
+      },
+      therapy: {
+        title: "Therapy Session Notes",
+        placeholder:
+`Therapist, modality, goals. Insights, homework, skills practiced, obstacles, next steps.`
+      },
+      skill: {
+        title: "Skill",
+        placeholder:
+`What skill? Why it matters. Steps. Practice plan. When will you use it?`
+      },
+      learning: {
+        title: "Psychoeducation / Learning",
+        placeholder:
+`What I learned. Key takeaways. How this applies to me. Questions.`
+      },
+      tools: {
+        title: "Tools",
+        placeholder:
+`Prompts, tools, self-soothing, limits. What helps quickly? What helps deeply?`
+      },
+      psych: {
+        title: "Psychology",
+        placeholder:
+`Cognitive distortions, differential thoughts, questions I want to explore.`
+      },
+      jung: {
+        title: "Jungian / Dreams / Shadow / Archetypes",
+        placeholder:
+`Symbols, archetypes, active imagination, synchronicities.`
+      },
+      freud: {
+        title: "Freudian / Drives / Defenses",
+        placeholder:
+`Defense mechanisms, dreams, slips, desire, transference/counter-transference.`
+      },
+      quotes: {
+        title: "Quotes / Key Phrases",
+        placeholder:
+`Lines you might open a chapter with.`
+      }
+    };
+
+    // ---- Helpers -----------------------------------------------------------
+    const uid = () => Math.random().toString(36).slice(2, 9);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+
+    const loadState = () => {
+      try {
+        const raw = localStorage.getItem("healing-diary");
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    };
+
+    const saveState = (state) => {
+      try {
+        localStorage.setItem("healing-diary", JSON.stringify(state));
+      } catch {}
+    };
+
+    // ---- Components --------------------------------------------------------
+    function TagEditor({tags, onAdd, onRemove}) {
+      const [txt, setTxt] = useState("");
+      const add = () => {
+        const t = txt.trim().replace(/\s+/g, "-").toLowerCase();
+        if (t && !tags.includes(t)) onAdd(t);
+        setTxt("");
+      };
+      return (
+        <div>
+          <label className="block text-xs font-semibold text-slate-700">Tags</label>
+          <div className="mt-1 flex gap-2">
+            <input
+              value={txt}
+              onChange={(e)=>setTxt(e.target.value)}
+              onKeyDown={(e)=>{ if(e.key==='Enter'){ e.preventDefault(); add(); }}}
+              placeholder="add a tag then press Enter"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white/90"
+            />
+            <button onClick={add}
+              className="px-3 rounded-lg bg-slate-800 text-white text-sm">Add</button>
+          </div>
+          {tags.length>0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {tags.map(t=>(
+                <span key={t} className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs bg-pastel-peach text-slate-800">
+                  #{t}
+                  <button onClick={()=>onRemove(t)} className="opacity-70 hover:opacity-100">✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function ChapterCard({chapter, onUpdate, onDelete}) {
+      const set = (patch) => onUpdate({...chapter, ...patch});
+      const tpl = CHAPTER_TEMPLATES[chapter.type];
+
+      return (
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 sm:p-5 shadow-soft rainbow-border">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <input
+              type="date"
+              value={chapter.date}
+              onChange={(e)=>set({date:e.target.value})}
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-white/90 w-full sm:w-auto"
+            />
+
+            <select value={chapter.type}
+              onChange={(e)=>set({type:e.target.value})}
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-white/90 w-full sm:w-auto">
+              {Object.entries(CHAPTER_TEMPLATES).map(([key, obj])=>(
+                <option key={key} value={key}>{obj.title}</option>
+              ))}
+            </select>
+
+            <input
+              value={chapter.title}
+              onChange={(e)=>set({title:e.target.value})}
+              placeholder="Give this entry a title"
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-white/90 w-full"
+            />
+          </div>
+
+          <div className="mt-4">
+            <TagEditor
+              tags={chapter.tags}
+              onAdd={(t)=>set({tags:[...chapter.tags, t]})}
+              onRemove={(t)=>set({tags:chapter.tags.filter(x=>x!==t)})}
+            />
+          </div>
+
+          <div className="mt-4">
+            <textarea
+              rows="10"
+              value={chapter.text}
+              onChange={(e)=>set({text:e.target.value})}
+              placeholder={tpl?.placeholder || "Write freely…"}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white/90"
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={()=>onDelete(chapter.id)}
+              className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">
+              Delete
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const persisted = loadState();
+      const [chapters, setChapters] = useState(
+        persisted?.chapters ?? [
+          { id: uid(), date: todayISO(), type: "narrative", title: "", tags: [], text: "" }
+        ]
+      );
+      const [query, setQuery] = useState("");
+      const [activeType, setActiveType] = useState("all");
+
+      // autosave
+      useEffect(()=>{ saveState({chapters}); }, [chapters]);
+
+      const addChapter = (type="narrative") => {
+        setChapters(cs => [
+          { id: uid(), date: todayISO(), type, title: "", tags: [], text: "" },
+          ...cs
+        ]);
+        window.scrollTo({top:0, behavior:"smooth"});
       };
 
-      try {
-        function App() {
-          const [count, setCount] = React.useState(0);
+      const updateChapter = (c) =>
+        setChapters(cs => cs.map(x => x.id===c.id ? c : x));
+
+      const deleteChapter = (id) =>
+        setChapters(cs => cs.filter(x => x.id !== id));
+
+      const allTags = useMemo(()=>{
+        const s = new Set();
+        chapters.forEach(c=>c.tags.forEach(t=>s.add(t)));
+        return Array.from(s).sort();
+      }, [chapters]);
+
+      const filtered = useMemo(()=>{
+        const q = query.trim().toLowerCase();
+        return chapters.filter(c=>{
+          if (activeType!=="all" && c.type!==activeType) return false;
+          if (!q) return true;
           return (
-            <main className="max-w-3xl mx-auto space-y-6">
-              <h1 className="text-3xl font-bold">Healing Diary — Smoke Test</h1>
-              <p>If you can see this, React & Babel loaded correctly.</p>
-              <button
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white"
-                onClick={() => setCount((c) => c + 1)}
-              >
-                Clicks: {count}
-              </button>
-              <p className="text-sm text-slate-500">Once this renders, we’ll paste the full app back in.</p>
-            </main>
+            c.title.toLowerCase().includes(q) ||
+            c.text.toLowerCase().includes(q) ||
+            c.tags.some(t=>t.includes(q))
           );
-        }
+        });
+      }, [chapters, query, activeType]);
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-      } catch (err) {
-        showError(err);
-      }
+      // export / import
+      const exportJSON = () => {
+        const blob = new Blob([JSON.stringify({chapters}, null, 2)], {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `healing-diary-${todayISO()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
 
-      // Also catch async/module-time errors
-      window.addEventListener('error', (e) => showError(e.error || e.message));
-      window.addEventListener('unhandledrejection', (e) => showError(e.reason || e));
-    </script>
-  </body>
+      const importJSON = (file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (Array.isArray(data?.chapters)) setChapters(data.chapters);
+            else alert("File did not contain { chapters: [...] }");
+          } catch {
+            alert("Invalid JSON file.");
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Actions */}
+          <section className="bg-white/80 p-4 sm:p-5 rounded-2xl shadow-soft rainbow-border">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                <button onClick={()=>addChapter("narrative")} className="px-3 py-2 rounded-xl bg-slate-800 text-white">New Entry</button>
+                <div className="relative">
+                  <select value={activeType} onChange={(e)=>setActiveType(e.target.value)}
+                          className="pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-white/90">
+                    <option value="all">All types</option>
+                    {Object.entries(CHAPTER_TEMPLATES).map(([k,v])=>(
+                      <option key={k} value={k}>{v.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <button onClick={exportJSON}
+                        className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50">
+                  Export JSON
+                </button>
+                <label className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer">
+                  Import JSON
+                  <input type="file" accept="application/json" className="hidden"
+                         onChange={(e)=>{ if(e.target.files?.[0]) importJSON(e.target.files[0]); e.target.value=""; }}/>
+                </label>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  value={query}
+                  onChange={(e)=>setQuery(e.target.value)}
+                  placeholder="Search title/text/tags…"
+                  className="w-full sm:w-72 px-3 py-2 rounded-xl border border-slate-200 bg-white/90"
+                />
+              </div>
+            </div>
+
+            {/* quick template buttons */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {Object.entries(CHAPTER_TEMPLATES).map(([k,v])=>(
+                <button key={k} onClick={()=>addChapter(k)}
+                  className="px-3 py-1.5 rounded-lg text-sm bg-pastel-yellow hover:brightness-95">
+                  {v.title}
+                </button>
+              ))}
+            </div>
+
+            {/* tag cloud */}
+            {allTags.length>0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {allTags.map(t=>(
+                  <button key={t}
+                    onClick={()=>setQuery(t)}
+                    className="px-2.5 py-1 rounded-full bg-pastel-mint text-xs hover:brightness-95">
+                    #{t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* List */}
+          {filtered.length === 0 ? (
+            <p className="text-center text-slate-500">No entries match your filter yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {filtered.map(ch => (
+                <ChapterCard
+                  key={ch.id}
+                  chapter={ch}
+                  onUpdate={updateChapter}
+                  onDelete={deleteChapter}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
 </html>
