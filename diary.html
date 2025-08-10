@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Healing Journey Diary</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #ffd6ff, #caffbf, #9bf6ff, #ffc6ff, #bdb2ff);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      font-family: sans-serif;
+    }
+    @keyframes gradientShift {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+    .pastel-card {
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="p-6">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    function DiaryApp() {
+      const [entries, setEntries] = React.useState([]);
+      const [text, setText] = React.useState("");
+      const [topic, setTopic] = React.useState("");
+
+      const addEntry = () => {
+        if (text.trim() && topic.trim()) {
+          setEntries([{ text, topic, date: new Date().toLocaleString() }, ...entries]);
+          setText("");
+          setTopic("");
+        }
+      };
+
+      return (
+        <div className="max-w-3xl mx-auto pastel-card">
+          <h1 className="text-3xl font-bold mb-4 text-center">Healing Journey Diary</h1>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Topic (e.g. Trauma, Therapy, AI)"
+              className="border p-2 w-full mb-2 rounded"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+            <textarea
+              placeholder="Write your entry here..."
+              className="border p-2 w-full rounded h-32"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            ></textarea>
+            <button
+              onClick={addEntry}
+              className="mt-2 bg-pink-300 hover:bg-pink-400 text-white px-4 py-2 rounded"
+            >
+              Add Entry
+            </button>
+          </div>
+          <div>
+            {entries.map((entry, i) => (
+              <div key={i} className="mb-4 p-3 bg-white rounded shadow">
+                <div className="text-sm text-gray-500">{entry.date}</div>
+                <div className="font-bold">{entry.topic}</div>
+                <div>{entry.text}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<DiaryApp />);
+  </script>
+</body>
+</html>
