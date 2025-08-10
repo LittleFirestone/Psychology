@@ -1,386 +1,495 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Healing Diary – Pastel Rainbow</title>
+  <title>Healing Diary</title>
 
-  <!-- Tailwind (CDN build) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // tiny, readable Tailwind config
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            pastel: {
-              pink:  "#ffd1dc",
-              peach: "#ffd8b1",
-              yellow:"#fff3b0",
-              mint:  "#b8f2e6",
-              aqua:  "#a0e7e5",
-              lilac: "#d7c7ff",
-              sky:   "#cfe8ff",
-              slate: "#445566"
-            }
-          },
-          boxShadow: {
-            soft: "0 8px 30px rgba(0,0,0,.08)"
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- React + ReactDOM + Babel (for JSX in-browser) -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+  <!-- Pastel look & roomy layout -->
   <style>
-    /* subtle rainbow border utility */
-    .rainbow-border {
-      position: relative;
+    :root{
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --ring:#e5e7eb;
+      --accent:#7c8cff;
+      --accent-ink:#ffffff;
+      --chip:#ffe8e3;
+      --bg-grad: linear-gradient(135deg,#f8f4ff 0%,#fff6f6 40%,#f6fffb 100%);
+      --card-bg: rgba(255,255,255,.88);
+      --card-shadow: 0 14px 40px rgba(0,0,0,.08);
+      --radius: 16px;
+      --wrap-max: 1200px;
+      --space: 20px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
-    .rainbow-border::before {
-      content: "";
-      position: absolute; inset: -2px;
-      border-radius: 16px;
-      background: linear-gradient(120deg,
-        #ffd1dc, #ffd8b1, #fff3b0, #b8f2e6, #a0e7e5, #d7c7ff, #cfe8ff);
-      z-index: -1;
-      filter: saturate(1.1);
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--ink);
+      background:var(--bg-grad) fixed;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      font-size:18px; /* nice and readable */
+      line-height:1.4;
+    }
+    .wrap{
+      max-width:var(--wrap-max);
+      margin:32px auto;
+      padding:clamp(16px,3vw,28px);
+      background:var(--card-bg);
+      border-radius:var(--radius);
+      box-shadow:var(--card-shadow);
+      backdrop-filter: blur(8px);
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:clamp(28px,3.4vw,40px);
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:0 0 18px;
+      color:var(--muted);
+      font-size:15px;
+    }
+
+    /* controls */
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin: 8px 0 22px;
+    }
+    button, input, select, textarea{
+      font:inherit;
+      border-radius:12px;
+      border:1px solid var(--ring);
+      padding:12px 14px;
+      background:#fff;
+      color:var(--ink);
+    }
+    button{
+      cursor:pointer;
+      transition:transform .02s ease, box-shadow .2s ease;
+    }
+    button:hover{ box-shadow:0 6px 16px rgba(0,0,0,.08) }
+    button:active{ transform:translateY(1px) }
+    .primary{ background:var(--accent); color:var(--accent-ink); border:0 }
+    .ghost{ background:transparent }
+    .chip{
+      background:var(--chip);
+      border:0;
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:14px;
+    }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .row-3{ display:grid; grid-template-columns: 2fr 3fr 2fr; gap:14px; }
+    .row-1{ display:grid; grid-template-columns: 1fr; gap:14px; }
+    label{ font-weight:600; font-size:14px; color:#374151 }
+    .field{ display:flex; flex-direction:column; gap:8px }
+    textarea{ min-height:140px; resize:vertical }
+    .divider{ height:1px; background:var(--ring); margin:18px 0 }
+
+    /* list */
+    .list{ display:grid; gap:12px; margin-top:10px }
+    .card{
+      background:#fff;
+      border:1px solid var(--ring);
+      border-radius:14px;
+      padding:14px;
+      display:grid;
+      gap:8px;
+    }
+    .card h3{ margin:0; font-size:18px }
+    .meta{ color:var(--muted); font-size:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .tags{ display:flex; gap:6px; flex-wrap:wrap }
+    .tag{ background:#eef2ff; color:#3843a7; padding:4px 8px; border-radius:999px; font-size:12px }
+
+    /* summary output */
+    .summary{
+      white-space:pre-wrap;
+      background:#fff;
+      border:1px dashed var(--ring);
+      padding:14px;
+      border-radius:14px;
+      margin-top:8px;
+    }
+
+    /* responsive */
+    @media (max-width: 860px){
+      .row, .row-3{ grid-template-columns: 1fr }
     }
   </style>
+
+  <!-- PDF export (html2pdf bundles html2canvas + jsPDF) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
-<body class="min-h-screen bg-gradient-to-b from-white to-pastel-sky/40 text-slate-800">
-  <div class="mx-auto max-w-6xl p-4 sm:p-6">
-    <header class="mb-6">
-      <h1 class="text-3xl sm:text-4xl font-bold tracking-tight">
-        Healing Diary <span class="text-slate-500">· Pastel Rainbow</span>
-      </h1>
-      <p class="text-slate-600">Jot therapy notes, skills, and insights. Everything saves locally.</p>
+<body>
+  <div class="wrap" id="wrap">
+    <header>
+      <h1>Healing Diary</h1>
+      <p class="sub">Your private space for sessions, insights, and progress. Everything saves locally in this browser.</p>
+      <div class="toolbar">
+        <button class="primary" id="saveBtn">Save Entry</button>
+        <button id="clearFormBtn">Clear Form</button>
+        <button class="ghost" id="exportBtn">Export PDF</button>
+        <button class="ghost" id="deleteAllBtn" title="Remove all saved entries">Delete All</button>
+      </div>
     </header>
 
-    <div id="root"></div>
+    <!-- Entry form -->
+    <section class="card">
+      <div class="row-3">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="date">
+        </div>
+        <div class="field">
+          <label>Topic (e.g. “Therapy Session”, “Mood”, “Insight”)</label>
+          <input id="topic" placeholder="Pick a topic name">
+        </div>
+        <div class="field">
+          <label>Tags (comma separated)</label>
+          <input id="tags" placeholder="e.g. anxiety, CBT, progress">
+        </div>
+      </div>
+
+      <div class="row-1">
+        <div class="field">
+          <label>Title</label>
+          <input id="title" placeholder="Give this a punchy title">
+        </div>
+      </div>
+
+      <div class="row-1">
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="text" placeholder="What happened, what you felt, what meaning you made…"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Filters & actions -->
+    <section class="card">
+      <div class="row">
+        <div class="field">
+          <label>Search text</label>
+          <input id="search" placeholder="Search across all entries…">
+        </div>
+        <div class="field">
+          <label>Filter by topic</label>
+          <select id="topicFilter"><option value="">All topics</option></select>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-top:12px">
+        <button id="summarizeBtn">Summarize selected topics</button>
+        <span class="chip" id="countChip">0 selected</span>
+      </div>
+
+      <div id="summary" class="summary" style="display:none"></div>
+    </section>
+
+    <!-- Entries -->
+    <section>
+      <div class="list" id="list"></div>
+    </section>
   </div>
 
-  <script type="text/babel">
-    const {useEffect, useMemo, useState} = React;
+  <script>
+    /********************
+     * Local storage
+     ********************/
+    const storeKey = 'healing-diary-v2';
+    const load = () => JSON.parse(localStorage.getItem(storeKey) || '[]');
+    const save = (arr) => localStorage.setItem(storeKey, JSON.stringify(arr));
 
-    // ---- Templates ---------------------------------------------------------
-    const CHAPTER_TEMPLATES = {
-      narrative: {
-        title: "Narrative",
-        placeholder:
-`Set the scene. Who/where/when? What happened? What did you feel? What meaning did you make?`
-      },
-      therapy: {
-        title: "Therapy Session Notes",
-        placeholder:
-`Therapist, modality, goals. Insights, homework, skills practiced, obstacles, next steps.`
-      },
-      skill: {
-        title: "Skill",
-        placeholder:
-`What skill? Why it matters. Steps. Practice plan. When will you use it?`
-      },
-      learning: {
-        title: "Psychoeducation / Learning",
-        placeholder:
-`What I learned. Key takeaways. How this applies to me. Questions.`
-      },
-      tools: {
-        title: "Tools",
-        placeholder:
-`Prompts, tools, self-soothing, limits. What helps quickly? What helps deeply?`
-      },
-      psych: {
-        title: "Psychology",
-        placeholder:
-`Cognitive distortions, differential thoughts, questions I want to explore.`
-      },
-      jung: {
-        title: "Jungian / Dreams / Shadow / Archetypes",
-        placeholder:
-`Symbols, archetypes, active imagination, synchronicities.`
-      },
-      freud: {
-        title: "Freudian / Drives / Defenses",
-        placeholder:
-`Defense mechanisms, dreams, slips, desire, transference/counter-transference.`
-      },
-      quotes: {
-        title: "Quotes / Key Phrases",
-        placeholder:
-`Lines you might open a chapter with.`
+    /********************
+     * Elements
+     ********************/
+    const el = id => document.getElementById(id);
+    const dateEl = el('date');
+    const topicEl = el('topic');
+    const tagsEl = el('tags');
+    const titleEl = el('title');
+    const textEl = el('text');
+
+    const listEl = el('list');
+    const topicFilterEl = el('topicFilter');
+    const searchEl = el('search');
+    const countChip = el('countChip');
+    const summaryBox = el('summary');
+
+    const saveBtn = el('saveBtn');
+    const clearFormBtn = el('clearFormBtn');
+    const exportBtn = el('exportBtn');
+    const deleteAllBtn = el('deleteAllBtn');
+    const summarizeBtn = el('summarizeBtn');
+
+    /********************
+     * Init
+     ********************/
+    // default date today
+    dateEl.valueAsDate = new Date();
+
+    let entries = load();
+    let selectedTopics = new Set();
+
+    renderAll();
+
+    /********************
+     * UI actions
+     ********************/
+    saveBtn.addEventListener('click', () => {
+      const entry = {
+        id: crypto.randomUUID(),
+        date: dateEl.value || new Date().toISOString().slice(0,10),
+        topic: (topicEl.value || '').trim(),
+        tags: (tagsEl.value || '')
+          .split(',')
+          .map(t => t.trim())
+          .filter(Boolean),
+        title: (titleEl.value || '').trim(),
+        text: (textEl.value || '').trim()
+      };
+
+      if(!entry.text){
+        alert('Please write some notes before saving.');
+        return;
       }
-    };
+      entries.unshift(entry);
+      save(entries);
+      clearForm();
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 
-    // ---- Helpers -----------------------------------------------------------
-    const uid = () => Math.random().toString(36).slice(2, 9);
-    const todayISO = () => new Date().toISOString().slice(0,10);
+    clearFormBtn.addEventListener('click', clearForm);
+    deleteAllBtn.addEventListener('click', () => {
+      if(confirm('Delete ALL entries? This cannot be undone.')){
+        entries = [];
+        save(entries);
+        renderAll();
+      }
+    });
 
-    const loadState = () => {
-      try {
-        const raw = localStorage.getItem("healing-diary");
-        return raw ? JSON.parse(raw) : null;
-      } catch { return null; }
-    };
-
-    const saveState = (state) => {
-      try {
-        localStorage.setItem("healing-diary", JSON.stringify(state));
-      } catch {}
-    };
-
-    // ---- Components --------------------------------------------------------
-    function TagEditor({tags, onAdd, onRemove}) {
-      const [txt, setTxt] = useState("");
-      const add = () => {
-        const t = txt.trim().replace(/\s+/g, "-").toLowerCase();
-        if (t && !tags.includes(t)) onAdd(t);
-        setTxt("");
+    exportBtn.addEventListener('click', () => {
+      const opt = {
+        margin:       8,
+        filename:     `Healing-Diary-${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      return (
-        <div>
-          <label className="block text-xs font-semibold text-slate-700">Tags</label>
-          <div className="mt-1 flex gap-2">
-            <input
-              value={txt}
-              onChange={(e)=>setTxt(e.target.value)}
-              onKeyDown={(e)=>{ if(e.key==='Enter'){ e.preventDefault(); add(); }}}
-              placeholder="add a tag then press Enter"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white/90"
-            />
-            <button onClick={add}
-              className="px-3 rounded-lg bg-slate-800 text-white text-sm">Add</button>
-          </div>
-          {tags.length>0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {tags.map(t=>(
-                <span key={t} className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs bg-pastel-peach text-slate-800">
-                  #{t}
-                  <button onClick={()=>onRemove(t)} className="opacity-70 hover:opacity-100">✕</button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
+      html2pdf().set(opt).from(document.getElementById('wrap')).save();
+    });
 
-    function ChapterCard({chapter, onUpdate, onDelete}) {
-      const set = (patch) => onUpdate({...chapter, ...patch});
-      const tpl = CHAPTER_TEMPLATES[chapter.type];
+    topicFilterEl.addEventListener('change', renderList);
+    searchEl.addEventListener('input', renderList);
 
-      return (
-        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 sm:p-5 shadow-soft rainbow-border">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <input
-              type="date"
-              value={chapter.date}
-              onChange={(e)=>set({date:e.target.value})}
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white/90 w-full sm:w-auto"
-            />
+    summarizeBtn.addEventListener('click', async () => {
+      if(selectedTopics.size === 0){
+        alert('Select at least one topic checkbox below, then click Summarize.');
+        return;
+      }
+      summaryBox.style.display = 'block';
+      summaryBox.textContent = 'Summarizing…';
 
-            <select value={chapter.type}
-              onChange={(e)=>set({type:e.target.value})}
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white/90 w-full sm:w-auto">
-              {Object.entries(CHAPTER_TEMPLATES).map(([key, obj])=>(
-                <option key={key} value={key}>{obj.title}</option>
-              ))}
-            </select>
+      // Gather text by selected topics
+      const grouped = {};
+      for(const t of selectedTopics) grouped[t] = [];
+      for(const e of entries){
+        if(selectedTopics.has(e.topic || 'Untitled')) grouped[e.topic || 'Untitled'].push(e.text);
+      }
 
-            <input
-              value={chapter.title}
-              onChange={(e)=>set({title:e.target.value})}
-              placeholder="Give this entry a title"
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white/90 w-full"
-            />
-          </div>
+      const prompt = buildSummaryPrompt(grouped);
 
-          <div className="mt-4">
-            <TagEditor
-              tags={chapter.tags}
-              onAdd={(t)=>set({tags:[...chapter.tags, t]})}
-              onRemove={(t)=>set({tags:chapter.tags.filter(x=>x!==t)})}
-            />
-          </div>
-
-          <div className="mt-4">
-            <textarea
-              rows="10"
-              value={chapter.text}
-              onChange={(e)=>set({text:e.target.value})}
-              placeholder={tpl?.placeholder || "Write freely…"}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white/90"
-            />
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={()=>onDelete(chapter.id)}
-              className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">
-              Delete
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    function App() {
-      const persisted = loadState();
-      const [chapters, setChapters] = useState(
-        persisted?.chapters ?? [
-          { id: uid(), date: todayISO(), type: "narrative", title: "", tags: [], text: "" }
-        ]
-      );
-      const [query, setQuery] = useState("");
-      const [activeType, setActiveType] = useState("all");
-
-      // autosave
-      useEffect(()=>{ saveState({chapters}); }, [chapters]);
-
-      const addChapter = (type="narrative") => {
-        setChapters(cs => [
-          { id: uid(), date: todayISO(), type, title: "", tags: [], text: "" },
-          ...cs
-        ]);
-        window.scrollTo({top:0, behavior:"smooth"});
-      };
-
-      const updateChapter = (c) =>
-        setChapters(cs => cs.map(x => x.id===c.id ? c : x));
-
-      const deleteChapter = (id) =>
-        setChapters(cs => cs.filter(x => x.id !== id));
-
-      const allTags = useMemo(()=>{
-        const s = new Set();
-        chapters.forEach(c=>c.tags.forEach(t=>s.add(t)));
-        return Array.from(s).sort();
-      }, [chapters]);
-
-      const filtered = useMemo(()=>{
-        const q = query.trim().toLowerCase();
-        return chapters.filter(c=>{
-          if (activeType!=="all" && c.type!==activeType) return false;
-          if (!q) return true;
-          return (
-            c.title.toLowerCase().includes(q) ||
-            c.text.toLowerCase().includes(q) ||
-            c.tags.some(t=>t.includes(q))
-          );
+      // 1) try your future serverless endpoint at /api/summarize
+      //    (safe place to call OpenAI with your API key)
+      try{
+        const controller = new AbortController();
+        const t = setTimeout(()=>controller.abort(), 12000); // 12s safety
+        const res = await fetch('/api/summarize', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ prompt }),
+          signal: controller.signal
         });
-      }, [chapters, query, activeType]);
-
-      // export / import
-      const exportJSON = () => {
-        const blob = new Blob([JSON.stringify({chapters}, null, 2)], {type:"application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `healing-diary-${todayISO()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-
-      const importJSON = (file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const data = JSON.parse(reader.result);
-            if (Array.isArray(data?.chapters)) setChapters(data.chapters);
-            else alert("File did not contain { chapters: [...] }");
-          } catch {
-            alert("Invalid JSON file.");
+        clearTimeout(t);
+        if(res.ok){
+          const data = await res.json();
+          if(data && data.summary){
+            summaryBox.textContent = data.summary.trim();
+            return;
           }
-        };
-        reader.readAsText(file);
-      };
+        }
+      }catch(err){
+        // ignore and fall back
+      }
 
-      return (
-        <div className="space-y-6">
-          {/* Actions */}
-          <section className="bg-white/80 p-4 sm:p-5 rounded-2xl shadow-soft rainbow-border">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
-                <button onClick={()=>addChapter("narrative")} className="px-3 py-2 rounded-xl bg-slate-800 text-white">New Entry</button>
-                <div className="relative">
-                  <select value={activeType} onChange={(e)=>setActiveType(e.target.value)}
-                          className="pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-white/90">
-                    <option value="all">All types</option>
-                    {Object.entries(CHAPTER_TEMPLATES).map(([k,v])=>(
-                      <option key={k} value={k}>{v.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <button onClick={exportJSON}
-                        className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50">
-                  Export JSON
-                </button>
-                <label className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer">
-                  Import JSON
-                  <input type="file" accept="application/json" className="hidden"
-                         onChange={(e)=>{ if(e.target.files?.[0]) importJSON(e.target.files[0]); e.target.value=""; }}/>
-                </label>
-              </div>
+      // 2) fallback: on-device extractive summary
+      const fallback = localSummarize(grouped, 6);
+      summaryBox.textContent = fallback;
+    });
 
-              <div className="flex gap-2">
-                <input
-                  value={query}
-                  onChange={(e)=>setQuery(e.target.value)}
-                  placeholder="Search title/text/tags…"
-                  className="w-full sm:w-72 px-3 py-2 rounded-xl border border-slate-200 bg-white/90"
-                />
-              </div>
-            </div>
-
-            {/* quick template buttons */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {Object.entries(CHAPTER_TEMPLATES).map(([k,v])=>(
-                <button key={k} onClick={()=>addChapter(k)}
-                  className="px-3 py-1.5 rounded-lg text-sm bg-pastel-yellow hover:brightness-95">
-                  {v.title}
-                </button>
-              ))}
-            </div>
-
-            {/* tag cloud */}
-            {allTags.length>0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {allTags.map(t=>(
-                  <button key={t}
-                    onClick={()=>setQuery(t)}
-                    className="px-2.5 py-1 rounded-full bg-pastel-mint text-xs hover:brightness-95">
-                    #{t}
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* List */}
-          {filtered.length === 0 ? (
-            <p className="text-center text-slate-500">No entries match your filter yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {filtered.map(ch => (
-                <ChapterCard
-                  key={ch.id}
-                  chapter={ch}
-                  onUpdate={updateChapter}
-                  onDelete={deleteChapter}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      );
+    /********************
+     * Renderers
+     ********************/
+    function renderAll(){
+      renderTopicsFilter();
+      renderList();
     }
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    function renderTopicsFilter(){
+      const topics = Array.from(new Set(entries.map(e => (e.topic || 'Untitled').trim()))).sort();
+      topicFilterEl.innerHTML = `<option value="">All topics</option>` + 
+        topics.map(t=>`<option>${escapeHTML(t || 'Untitled')}</option>`).join('');
+    }
+
+    function renderList(){
+      const q = (searchEl.value || '').toLowerCase();
+      const onlyTopic = (topicFilterEl.value || '').trim();
+
+      // prepare checkboxes per topic
+      const topics = Array.from(new Set(entries.map(e => (e.topic || 'Untitled').trim()))).sort();
+
+      // topic selector row
+      const topicRow = `
+        <div class="card">
+          <div class="meta"><strong>Select topics to summarize:</strong></div>
+          <div class="tags" id="topicChecks">
+            ${topics.map(t=>{
+              const id = 't_' + t.replace(/\W+/g,'_');
+              const checked = selectedTopics.has(t) ? 'checked' : '';
+              return `
+                <label class="chip" style="display:inline-flex;gap:8px;align-items:center;">
+                  <input type="checkbox" id="${id}" data-topic="${escapeAttr(t)}" ${checked}>
+                  ${escapeHTML(t || 'Untitled')}
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      // filtered list
+      const filtered = entries.filter(e=>{
+        const matchTopic = !onlyTopic || (e.topic || 'Untitled').trim() === onlyTopic;
+        const hay = (e.title + ' ' + e.text + ' ' + (e.tags||[]).join(' ')).toLowerCase();
+        return matchTopic && (!q || hay.includes(q));
+      });
+
+      const cards = filtered.map(e => {
+        const t = (e.topic || 'Untitled').trim() || 'Untitled';
+        const tags = (e.tags||[]).map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join('');
+        return `
+          <article class="card">
+            <div class="meta">
+              <strong>${escapeHTML(t)}</strong>
+              <span>•</span>
+              <span>${escapeHTML(e.date || '')}</span>
+            </div>
+            ${e.title ? `<h3>${escapeHTML(e.title)}</h3>` : ''}
+            <div>${nl2br(escapeHTML(e.text))}</div>
+            <div class="tags">${tags}</div>
+          </article>
+        `;
+      }).join('') || `<div class="card" style="color:var(--muted)">No entries yet.</div>`;
+
+      listEl.innerHTML = topicRow + cards;
+
+      // wire up topic checkboxes
+      const checks = listEl.querySelectorAll('#topicChecks input[type="checkbox"]');
+      checks.forEach(ch=>{
+        ch.addEventListener('change', () => {
+          const t = ch.dataset.topic;
+          if(ch.checked) selectedTopics.add(t); else selectedTopics.delete(t);
+          countChip.textContent = `${selectedTopics.size} selected`;
+        });
+      });
+
+      countChip.textContent = `${selectedTopics.size} selected`;
+    }
+
+    /********************
+     * Helpers
+     ********************/
+    function clearForm(){
+      titleEl.value = '';
+      textEl.value = '';
+      tagsEl.value = '';
+      // keep date & topic (handy when adding several)
+      titleEl.focus();
+    }
+
+    function escapeHTML(s){
+      return (s || '').replace(/[&<>'"]/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
+      }[c]));
+    }
+    function escapeAttr(s){
+      return (s || '').replace(/"/g, '&quot;');
+    }
+    function nl2br(s){ return s.replace(/\n/g,'<br>') }
+
+    // Build the LLM prompt for your serverless endpoint
+    function buildSummaryPrompt(grouped){
+      const sections = Object.entries(grouped).map(([topic, texts])=>{
+        return `### Topic: ${topic}\n${texts.map(t=>`- ${t}`).join('\n')}`;
+      }).join('\n\n');
+
+      return `You are a clinical-notes assistant. Summarize concisely with bullet points by topic. 
+Keep therapeutic insights, patterns, emotions, techniques, homework, and wins. Avoid fluff. 
+Return clean markdown.
+
+${sections}`;
+    }
+
+    // simple extractive fallback: score sentences by TF and return top N per topic
+    function localSummarize(grouped, maxBulletsPerTopic=6){
+      const stop = new Set('a,an,the,and,or,but,if,then,so,because,of,to,in,on,for,with,as,is,are,was,were,be,been,i,me,my,we,our,you,your,they,their,it,that,this,these,those,at,by,from,about,into,not,no,very,just,too,can,could,should,would,will,may,might,over,more,less'.split(','));
+      const scoreText = (text) => {
+        const words = text.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w && !stop.has(w));
+        const freq = {};
+        for(const w of words) freq[w] = (freq[w]||0)+1;
+        const sents = text.split(/(?<=[\.\!\?])\s+/);
+        const scored = sents.map(s=>{
+          const ws = s.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/);
+          let score = 0;
+          for(const w of ws) if(freq[w]) score += freq[w];
+          return { s:s.trim(), score };
+        }).filter(x=>x.s.length>0);
+        scored.sort((a,b)=>b.score-a.score);
+        return scored.slice(0, maxBulletsPerTopic).map(x=>x.s);
+      };
+
+      let out = [];
+      for(const [topic, texts] of Object.entries(grouped)){
+        const joined = texts.join(' ');
+        const bullets = scoreText(joined);
+        out.push(`## ${topic}`);
+        for(const b of bullets) out.push(`• ${b}`);
+        out.push('');
+      }
+      return out.join('\n');
+    }
   </script>
+
+  <!--
+    🔒 About OpenAI integration
+
+    This page will already summarize offline. If you want GPT-based summaries:
+
+    1) Deploy to Vercel.
+    2) Add a Serverless Function at /api/summarize that calls OpenAI with your key.
+       Return JSON: { summary: "..." }.
+    3) The button "Summarize selected topics" already POSTs to /api/summarize.
+       If the API isn't there, it falls back to the offline summary above.
+
+    This keeps your OpenAI key off the page (never put API keys in HTML/JS).
+  -->
 </body>
 </html>
