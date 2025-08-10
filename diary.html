@@ -1,167 +1,341 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Healing Journey Diary</title>
 
 <!-- jsPDF for PDF export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        color: #333;
-        background: linear-gradient(270deg, #ffd6e0, #e0f7fa, #e1bee7, #fff9c4);
-        background-size: 800% 800%;
-        animation: gradientShift 15s ease infinite;
-    }
+  :root{
+    --p1:#ffd6e0; --p2:#d9f1ff; --p3:#e7d9ff; --p4:#fff7cc; --ink:#333;
+    --card:rgba(255,255,255,0.85);
+    --chip:#f1e6ff; --chipText:#6a1b9a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
+    color:var(--ink);
+    background: linear-gradient(120deg,var(--p1),var(--p2),var(--p3),var(--p4));
+    background-size: 800% 800%;
+    animation: pastelMove 16s ease infinite;
+  }
+  @keyframes pastelMove{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
 
-    @keyframes gradientShift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
+  .wrap{max-width:1100px; margin:auto; padding:24px; }
+  h1{margin:0 0 12px; text-align:center; font-size:2rem}
+  .sub{opacity:.75; text-align:center; margin:0 0 22px; font-size:.95rem}
 
-    .container {
-        max-width: 900px;
-        margin: auto;
-        padding: 20px;
-    }
+  .card{
+    position:relative;
+    border-radius:16px;
+    padding:16px;
+    background:var(--card);
+    backdrop-filter:saturate(140%) blur(6px);
+    box-shadow:0 10px 24px rgba(0,0,0,.15);
+    overflow:hidden;
+  }
+  /* rainbow border */
+  .card::before{
+    content:"";
+    position:absolute; inset:-2px;
+    border-radius:18px;
+    padding:2px;
+    background:conic-gradient(from 120deg, #ffb3c7, #b3e5ff, #cbb2ff, #fff0a8, #ffb3c7);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    pointer-events:none;
+  }
 
-    h1 {
-        text-align: center;
-        font-size: 2rem;
-        margin-bottom: 10px;
-    }
+  .grid{display:grid; gap:16px}
+  @media(min-width:900px){ .grid{grid-template-columns: 1.1fr .9fr} }
 
-    .entry-box {
-        background: rgba(255,255,255,0.9);
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        margin-bottom: 20px;
-    }
+  input,textarea,select,button{
+    width:100%; padding:10px 12px; border-radius:10px;
+    border:1px solid #e1e1e1; font-size:1rem; background:#fff;
+  }
+  textarea{min-height:120px; resize:vertical}
+  .row{display:grid; gap:12px}
+  @media(min-width:700px){ .row{grid-template-columns:1fr 1fr} }
 
-    input, textarea, button, select {
-        width: 100%;
-        padding: 10px;
-        margin: 6px 0;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        font-size: 1rem;
-    }
+  .actions{display:flex; gap:10px; flex-wrap:wrap}
+  .btn{
+    background:#a7c7e7; border:none; cursor:pointer; font-weight:600;
+  }
+  .btn:hover{background:#90b4d5}
+  .btn.secondary{background:#e7d9ff}
+  .btn.warn{background:#ffd6d6}
+  .hint{font-size:.85rem; opacity:.75}
 
-    button {
-        background-color: #a7c7e7;
-        border: none;
-        cursor: pointer;
-    }
+  .entry{background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; margin:10px 0}
+  .entry .top{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+  .chips{display:flex; gap:6px; flex-wrap:wrap}
+  .chip{background:var(--chip); color:var(--chipText); padding:4px 8px; border-radius:999px; font-size:.85rem}
 
-    button:hover {
-        background-color: #90b4d5;
-    }
+  .filters{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+  .filter-item{display:flex; align-items:center; gap:6px; background:#ffffffaa; padding:6px 8px; border-radius:10px; border:1px solid #eee}
+  .muted{opacity:.7}
 
-    .entry {
-        background: rgba(255,255,255,0.95);
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
+  .summary{
+    white-space:pre-wrap; border:1px dashed #ccc; border-radius:12px; padding:12px; background:#fff; margin-top:10px
+  }
 
-    .topic {
-        font-weight: bold;
-        color: #6a1b9a;
-    }
+  .no-data{padding:12px; text-align:center; opacity:.7}
 </style>
 </head>
 <body>
-<div class="container">
+  <div class="wrap">
+
     <h1>Healing Journey Diary</h1>
+    <p class="sub">Write, search, filter by topic, export, and summarize with GPT (via Vercel API).</p>
 
-    <div class="entry-box">
-        <input type="text" id="topic" placeholder="Topic (e.g. Trauma, Therapy)">
-        <textarea id="content" rows="4" placeholder="Write your thoughts here..."></textarea>
-        <button onclick="addEntry()">Add Entry</button>
-        <button onclick="exportPDF()">Export as PDF</button>
+    <div class="grid">
+      <!-- Left: compose & tools -->
+      <div class="card">
+        <h3 style="margin-top:4px">New Entry</h3>
+        <div class="row">
+          <input id="topics" placeholder="Topics (comma separated e.g. trauma, therapy)" />
+          <input id="when" type="datetime-local" />
+        </div>
+        <textarea id="content" placeholder="Write your thoughts..."></textarea>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn" onclick="addEntry()">Add Entry</button>
+          <button class="btn secondary" onclick="exportPDF()">Export PDF</button>
+          <button class="btn secondary" onclick="exportJSON()">Export JSON</button>
+        </div>
+        <p class="hint">Entries are saved in your browser (localStorage). Export JSON to back up.</p>
+      </div>
+
+      <!-- Right: search + summarize -->
+      <div class="card">
+        <h3 style="margin-top:4px">Search & Summarize</h3>
+        <input id="search" placeholder="Search in topics/content..." oninput="render()" />
+        <div id="topicFilters" class="filters"></div>
+
+        <div class="actions" style="margin-top:8px">
+          <button class="btn" onclick="summarizeSelected()">Summarize Selected Topics (GPT)</button>
+          <button class="btn" onclick="summarizeAll()">Summarize All (GPT)</button>
+        </div>
+        <p class="hint muted">For GPT summaries you must add the Vercel API route & set your OPENAI_API_KEY (steps below).</p>
+        <div id="summary" class="summary" style="display:none"></div>
+      </div>
     </div>
 
-    <div class="entry-box">
-        <input type="text" id="search" placeholder="Search by topic..." oninput="searchEntries()">
+    <!-- Entries list -->
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:4px">Entries</h3>
+      <div id="entries"></div>
+      <div id="emptyState" class="no-data" style="display:none">No entries yet — add one above.</div>
     </div>
-
-    <div id="entries"></div>
-</div>
+  </div>
 
 <script>
-    let entries = JSON.parse(localStorage.getItem("diaryEntries")) || [];
+  // ---------- Storage ----------
+  const LS_KEY = "healingDiary.entries.v2";
+  let entries = load();
 
-    function addEntry() {
-        const topic = document.getElementById("topic").value.trim();
-        const content = document.getElementById("content").value.trim();
-        if (!topic || !content) return alert("Please fill in both fields");
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(LS_KEY)) || [] }catch{ return [] }
+  }
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(entries)) }
 
-        const newEntry = {
-            topic,
-            content,
-            date: new Date().toLocaleString()
-        };
+  // ---------- Helpers ----------
+  const byId = id => document.getElementById(id);
+  const unique = arr => [...new Set(arr)];
+  const parseTopics = str => str.split(",").map(t => t.trim()).filter(Boolean);
 
-        entries.unshift(newEntry);
-        localStorage.setItem("diaryEntries", JSON.stringify(entries));
-        renderEntries();
-        document.getElementById("topic").value = "";
-        document.getElementById("content").value = "";
+  function addEntry(){
+    const topics = parseTopics(byId("topics").value);
+    const content = byId("content").value.trim();
+    const when = byId("when").value ? new Date(byId("when").value) : new Date();
+    if(!topics.length || !content){ alert("Please add at least one topic and some content."); return }
+
+    entries.unshift({
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      topics,
+      content,
+      dateISO: when.toISOString()
+    });
+    save();
+    byId("topics").value = "";
+    byId("content").value = "";
+    byId("when").value = "";
+    render();
+  }
+
+  function updateTopicsFilterUI(){
+    const all = unique(entries.flatMap(e => e.topics)).sort((a,b)=>a.localeCompare(b));
+    const container = byId("topicFilters");
+    container.innerHTML = "";
+    all.forEach(t=>{
+      const id = "t_" + t.replace(/\W+/g,"_");
+      const wrap = document.createElement("label");
+      wrap.className = "filter-item";
+      wrap.innerHTML = `<input type="checkbox" id="${id}" data-topic="${t}"><span>${t}</span>`;
+      container.appendChild(wrap);
+      byId(id).addEventListener("change", render);
+    });
+  }
+
+  function getSelectedTopics(){
+    return [...document.querySelectorAll('#topicFilters input[type="checkbox"]:checked')].map(c => c.dataset.topic);
+  }
+
+  function render(){
+    // list
+    const q = byId("search").value.toLowerCase();
+    const selected = getSelectedTopics();
+    const list = byId("entries");
+    const empty = byId("emptyState");
+    list.innerHTML = "";
+
+    let filtered = entries.filter(e=>{
+      const hitQ = !q || e.content.toLowerCase().includes(q) || e.topics.join(" ").toLowerCase().includes(q);
+      const hitTopic = !selected.length || selected.some(t => e.topics.includes(t));
+      return hitQ && hitTopic;
+    });
+
+    if(!filtered.length){
+      empty.style.display = "block";
+    } else {
+      empty.style.display = "none";
+      filtered.forEach(e=>{
+        const div = document.createElement("div");
+        div.className = "entry";
+        const date = new Date(e.dateISO).toLocaleString();
+        div.innerHTML = `
+          <div class="top">
+            <div class="chips">${e.topics.map(t=>`<span class="chip">${t}</span>`).join("")}</div>
+            <div class="muted">${date}</div>
+          </div>
+          <div style="margin-top:8px">${escapeHTML(e.content).replace(/\n/g,"<br>")}</div>
+          <div class="actions" style="margin-top:8px">
+            <button class="btn secondary" onclick="editEntry('${e.id}')">Edit</button>
+            <button class="btn warn" onclick="deleteEntry('${e.id}')">Delete</button>
+          </div>`;
+        list.appendChild(div);
+      });
     }
 
-    function renderEntries(filter = "") {
-        const container = document.getElementById("entries");
-        container.innerHTML = "";
-        entries
-            .filter(e => e.topic.toLowerCase().includes(filter.toLowerCase()))
-            .forEach(e => {
-                const div = document.createElement("div");
-                div.className = "entry";
-                div.innerHTML = `<div class="topic">${e.topic}</div>
-                                 <div><em>${e.date}</em></div>
-                                 <p>${e.content}</p>`;
-                container.appendChild(div);
-            });
+    // refresh filters whenever the topic universe changes
+    updateTopicsFilterUI();
+  }
+
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+
+  function editEntry(id){
+    const i = entries.findIndex(e=>e.id===id);
+    if(i<0) return;
+    const e = entries[i];
+    const newTopics = prompt("Edit topics (comma separated):", e.topics.join(", "));
+    if(newTopics===null) return; // cancelled
+    const newContent = prompt("Edit content:", e.content);
+    if(newContent===null) return;
+    e.topics = parseTopics(newTopics);
+    e.content = newContent.trim();
+    save(); render();
+  }
+
+  function deleteEntry(id){
+    if(!confirm("Delete this entry?")) return;
+    entries = entries.filter(e=>e.id!==id);
+    save(); render();
+  }
+
+  // ---------- Export ----------
+  function exportJSON(){
+    const blob = new Blob([JSON.stringify(entries,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "healing_diary.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:"pt", format:"a4"});
+    const lineH = 16;
+    const margin = 40;
+    const maxW = 515; // page width 595 - margins
+    let y = margin;
+
+    doc.setFont("helvetica","bold"); doc.setFontSize(16);
+    doc.text("Healing Journey Diary", margin, y); y += 24;
+
+    entries.forEach((e,idx)=>{
+      const title = `• ${new Date(e.dateISO).toLocaleString()}  —  [${e.topics.join(", ")}]`;
+      doc.setFont("helvetica","bold"); doc.setFontSize(12);
+      y = maybePageBreak(doc, y, margin, 780);
+      doc.text(title, margin, y); y += lineH;
+
+      doc.setFont("helvetica","normal"); doc.setFontSize(11);
+      const lines = doc.splitTextToSize(e.content, maxW);
+      lines.forEach(line=>{
+        y = maybePageBreak(doc, y, margin, 780);
+        doc.text(line, margin, y); y += lineH;
+      });
+      y += 6;
+    });
+
+    doc.save("Healing_Journey_Diary.pdf");
+  }
+  function maybePageBreak(doc, y, margin, limit){
+    if(y > limit){ doc.addPage(); return margin; }
+    return y;
+  }
+
+  // ---------- GPT Summaries (via Vercel API) ----------
+  async function summarizeSelected(){
+    const topics = getSelectedTopics();
+    if(!topics.length){ alert("Tick at least one topic in the filters."); return }
+    await doSummarize({ topics });
+  }
+  async function summarizeAll(){
+    if(!entries.length){ alert("No entries to summarize."); return }
+    await doSummarize({ topics: [] }); // empty = all
+  }
+
+  async function doSummarize({topics}){
+    showSummary("Working…");
+    try{
+      const payload = {
+        topics,
+        entries,
+        instructions: "Write concise bullet-point summaries per topic, then a short overall reflection and 3 actionable suggestions."
+      };
+      const res = await fetch("/api/summarize", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){
+        const t = await res.text();
+        throw new Error(`API error ${res.status}: ${t}`);
+      }
+      const data = await res.json();
+      showSummary(data.summary || "(No summary returned.)");
+    }catch(err){
+      showSummary("Summary failed. Did you set OPENAI_API_KEY on Vercel and create /api/summarize?\n\n" + err.message);
     }
+  }
 
-    function searchEntries() {
-        const filter = document.getElementById("search").value;
-        renderEntries(filter);
-    }
+  function showSummary(text){
+    const box = byId("summary");
+    box.style.display = "block";
+    box.textContent = text;
+  }
 
-    async function exportPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        let y = 10;
-        doc.setFontSize(16);
-        doc.text("Healing Journey Diary", 10, y);
-        y += 10;
-
-        entries.forEach(e => {
-            doc.setFontSize(12);
-            doc.text(`Topic: ${e.topic}`, 10, y);
-            y += 6;
-            doc.setFontSize(10);
-            let splitText = doc.splitTextToSize(`${e.date} - ${e.content}`, 180);
-            doc.text(splitText, 10, y);
-            y += splitText.length * 5 + 5;
-        });
-
-        doc.save("Healing_Journey_Diary.pdf");
-    }
-
-    // Placeholder for GPT summary integration
-    async function summariseEntries() {
-        alert("GPT-5 summary integration placeholder – will connect to OpenAI API later.");
-    }
-
-    renderEntries();
+  // ---------- boot ----------
+  updateTopicsFilterUI();
+  render();
 </script>
 </body>
 </html>
