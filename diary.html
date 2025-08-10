@@ -30,18 +30,12 @@
     overflow-y:overlay;
   }
 
-  /* gentle pastel sheen — slowed down + respects reduced motion */
+  /* gentle pastel sheen — static, no animation */
   body::before{
     content:""; 
     position:fixed; inset:-30%; 
     z-index:-1; pointer-events:none;
     background: conic-gradient(from 0deg, #ff7aa233, #ffb86b33, #ffd16633, #9be15d33, #64d8ff33, #b39ddb33, #ff7aa233);
-    animation: spin 240s linear infinite; /* slowed to 4 minutes per rotation */
-    will-change: transform;
-  }
-  @keyframes spin{ to{ transform: rotate(1turn) } }
-  @media (prefers-reduced-motion: reduce){
-    body::before{ animation: none !important; }
   }
 
   .wrap{ max-width:1100px; margin:40px auto 80px; padding:0 20px }
