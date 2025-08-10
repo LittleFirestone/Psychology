@@ -1,361 +1,331 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Healing Diary</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Healing Diary</title>
 
-  <!-- PDF libs (client-side export) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+<!-- html2pdf for Export PDF -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-YcsIP0GLwL8aR1O45x9gN3G9b+1k2qf3m7m2G3uJrHc3m5n2m2m9nTbqk6h3l2v9Qx2d6X2pJqP1yq2pQy9e+Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <style>
-    :root{
-      --bg1:#ffe0e9; --bg2:#e6f7ff; --bg3:#eaf7e4; --bg4:#fff3cd;
-      --ink:#1f2937; --card:#ffffffF2; --soft:#eef2ff;
-      --ring: 0 0 0 3px rgba(180,180,255,.35);
-      --shadow: 0 10px 30px rgba(0,0,0,.10);
-      --radius: 18px;
-      --maxw: 1100px;
-    }
+<style>
+  :root{
+    --bg1:#fef7ff;
+    --bg2:#eefbff;
+    --bg3:#f9fff2;
+    --card:#ffffffd9;   /* soft white, less bright */
+    --text:#1f2630;
+    --muted:#738195;
+    --ring: rgba(255,255,255,.65);
+  }
 
-    /* Animated pastel background */
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-      color:var(--ink);
-      background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg3), var(--bg4));
-      background-size: 300% 300%;
-      animation: pastelFlow 18s ease infinite;
-    }
-    @keyframes pastelFlow{
-      0%{ background-position: 0% 50% }
-      50%{ background-position: 100% 50% }
-      100%{ background-position: 0% 50% }
-    }
+  *{ box-sizing:border-box }
+  html, body{ height:100% }
+  body{
+    margin:0; color:var(--text); font:16px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+    background: radial-gradient(1200px 700px at 10% 0%, var(--bg1), transparent 70%),
+                radial-gradient(1000px 600px at 90% 20%, var(--bg2), transparent 70%),
+                radial-gradient(900px 500px at 50% 100%, var(--bg3), transparent 70%), #f6fbff;
+    min-height:100%;
+    overflow-y:overlay;
+  }
 
-    .wrap{
-      max-width: var(--maxw);
-      margin: 40px auto 80px;
-      padding: 0 20px;
-    }
+  /* gentle animated pastel sheen */
+  body::before{
+    content:""; position:fixed; inset:-30%; z-index:-1; pointer-events:none;
+    background: conic-gradient(from 0deg, #ff7aa233, #ffb86b33, #ffd16633, #9be15d33, #64d8ff33, #b39ddb33, #ff7aa233);
+    animation: spin 14s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(1turn) } }
 
-    .card{
-      background: var(--card);
-      backdrop-filter: saturate(150%) blur(12px);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255,255,255,.55);
-    }
+  .wrap{ max-width:1100px; margin:40px auto 80px; padding:0 20px }
+  header.card{ padding:22px 22px 18px; }
 
-    /* Rainbow text utilities */
-    .rainbow-text{
-      background: linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    .rainbow-chip{
-      display:inline-flex; align-items:center; gap:.35rem;
-      background: linear-gradient(135deg,#fff,#fff0,#fff);
-      border: 1px solid rgba(0,0,0,.05);
-      border-radius: 999px; padding:.35rem .75rem; font-size:.85rem; font-weight:600;
-      position:relative; overflow:hidden;
-    }
-    .rainbow-chip::before{
-      content:"";
-      position:absolute; inset:-1px;
-      border-radius: 999px;
-      padding:1px;
-      background: linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
-      -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-    }
+  h1{
+    margin:0 0 6px 0; font-size:32px; font-weight:800; letter-spacing:.2px;
+  }
+  .rainbow-title{
+    background:linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .subtitle{ color:var(--muted); font-size:14px }
 
-    .title{
-      font-size: clamp(28px, 3.8vw, 46px);
-      line-height:1.1; letter-spacing:-.02em; margin:0 0 10px;
-    }
-    .subtitle{
-      margin:0; opacity:.8; font-weight:500;
-    }
+  .grid{ display:grid; gap:24px; grid-template-columns:1.2fr .8fr; margin-top:24px }
+  @media (max-width: 900px){ .grid{ grid-template-columns:1fr } }
 
-    .grid{
-      display:grid; gap:20px;
-      grid-template-columns: 1.2fr .8fr;
-    }
-    @media (max-width: 900px){
-      .grid{ grid-template-columns: 1fr }
-    }
+  .card{
+    position:relative; overflow:hidden;
+    background:var(--card); backdrop-filter: blur(8px);
+    border-radius:18px; box-shadow: 0 20px 50px rgba(53,72,91,.12);
+  }
+  .card-inner{ padding:18px 18px 16px }
 
-    .section{ padding:22px }
-    .section h2{
-      margin:0 0 14px; font-size:1.15rem; letter-spacing:.02em;
-    }
-    .row{ display:flex; gap:10px; flex-wrap:wrap }
-    .input, .textarea{
-      width:100%; border-radius:14px; border:1px solid #e9e9ef;
-      background:#fff; padding:12px 14px; font-size:1rem; outline:none;
-      box-shadow: 0 1px 0 rgba(0,0,0,.02) inset;
-    }
-    .input:focus, .textarea:focus{ box-shadow: var(--ring) }
-    .textarea{ min-height:140px; resize:vertical }
+  /* rainbow border frame */
+  .rainbow-frame::before{
+    content:""; position:absolute; inset:0; padding:2px; border-radius:18px;
+    background:linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    pointer-events:none;
+    opacity:.85;
+  }
 
-    .btn{
-      appearance:none; border:0; border-radius:14px; padding:12px 16px;
-      font-weight:700; cursor:pointer; transition:.18s transform ease;
-      background:#111827; color:#fff; box-shadow: 0 8px 20px rgba(17,24,39,.18);
-    }
-    .btn:active{ transform: translateY(1px) }
-    .btn.secondary{ background:#ffffff; color:#111827; border:1px solid #e8e8ef }
-    .btn.ghost{ background:transparent; color:#111827; border:1px dashed #cdd0f6 }
+  .section-title{ font-weight:700; text-transform:uppercase; font-size:13px; letter-spacing:.08em; color:#54637a; margin:0 0 10px }
+  .divider, .rainbow-divider{ height:2px; border-radius:2px; margin:12px 0 }
+  .divider{ background:#e8eef6 }
+  .rainbow-divider{ background:linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb) }
 
-    .pill{
-      padding:8px 12px; border-radius:12px; background:#f7f7ff; border:1px solid #eceefb;
-      font-size:.9rem;
-    }
+  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+  .row-stretch{ display:flex; gap:12px }
+  .row-stretch > *{ flex:1 }
 
-    .entry{
-      padding:16px; border-radius:16px; border:1px solid #eff1ff;
-      background: #fff;
-    }
+  label{ display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#536072; margin:12px 0 8px }
+  input.input, textarea.input{
+    width:100%; border:1px solid #e7edf6; border-radius:12px; padding:12px 14px; outline:none;
+    background:#fff; color:var(--text); box-shadow: 0 1px 0 rgba(31,38,48,.03) inset;
+  }
+  textarea.input{ min-height:160px; resize:vertical }
+  input.input:focus, textarea.input:focus{ border-color:#c9d9ee; box-shadow: 0 0 0 3px #cfe5ff66 }
 
-    .divider{
-      height:2px; border-radius:2px; margin:18px 0;
-      background: linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
-      opacity:.7;
-    }
+  .btn{
+    border:0; outline:0; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600;
+    background:#f0f6ff; color:#274056; box-shadow: 0 1px 0 #fff inset, 0 8px 20px rgba(96,132,170,.18);
+  }
+  .btn.primary{ background:#3d8bfd; color:#fff }
+  .btn.warn{ background:#ffd7d7; color:#8f1d1d }
+  .btn.ghost{ background:#ffffff; }
+  .btn:active{ transform: translateY(1px) }
 
-    .kicker{ font-size:.8rem; text-transform:uppercase; letter-spacing:.1em; opacity:.75 }
-    .muted{ opacity:.7 }
+  /* chips */
+  .chip, .rainbow-chip{
+    display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:600; user-select:none;
+    border:1px solid #e9eef6; background:#fff;
+  }
+  .rainbow-chip{
+    border:0;
+    background:linear-gradient(#fff,#fff) padding-box, linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb) border-box;
+    border:2px solid transparent; color:#2c4258;
+  }
 
-    /* Print: make it clean */
-    @media print{
-      body{ animation:none; background:#fff }
-      .btn, .controls, .no-print{ display:none !important }
-      .wrap{ margin:0; max-width:900px }
-      .card{ box-shadow:none; border:0; background:#fff }
-    }
-  </style>
+  /* entry list */
+  .entry{
+    position:relative; padding:14px; border-radius:14px; background:#fff; border:1px solid #e7edf6;
+    box-shadow: 0 1px 0 #fff inset, 0 10px 24px rgba(53,72,91,.08);
+  }
+  .entry + .entry{ margin-top:12px }
+  .entry time{ font-size:12px; color:#556579; font-weight:700 }
+  .entry .title{ margin:6px 0 4px; font-weight:700 }
+  .entry .text{ color:#47576b; white-space:pre-wrap }
+  .entry .toolbar{ position:absolute; right:8px; top:8px; display:flex; gap:8px }
+  .entry .toolbar .btn{ padding:6px 10px; font-size:12px }
+
+  /* summary panel */
+  .summary-box{ white-space:pre-wrap; background:#fff; border:1px solid #e7edf6; border-radius:14px; padding:14px; min-height:80px }
+
+  .muted{ color:var(--muted) }
+  .small{ font-size:12px }
+</style>
 </head>
 <body>
   <div class="wrap">
-    <!-- Header -->
-    <div class="card section" style="padding:26px">
-      <h1 class="title rainbow-text">Healing Diary</h1>
-      <p class="subtitle">Write, tag, search, export to PDF — and get an AI newsletter-style summary.</p>
-    </div>
-
-    <div class="grid" id="page-grid">
-      <!-- Left: Editor -->
-      <div class="card">
-        <div class="section">
-          <h2 class="kicker">New entry</h2>
-          <div class="row">
-            <input id="topic" class="input" placeholder="Topics (comma-separated, e.g. anxiety, sleep, routine)" />
-          </div>
-          <div style="height:10px"></div>
-          <textarea id="text" class="textarea" placeholder="Write your thoughts here…"></textarea>
-
-          <div style="height:12px"></div>
-          <div class="row">
-            <button class="btn" id="saveBtn">Save entry</button>
-            <button class="btn secondary" id="clearBtn">Clear</button>
-            <button class="btn ghost no-print" id="pdfBtn" title="Export visible content to PDF">Export PDF</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="section">
-          <h2 class="kicker">AI summary</h2>
-          <div class="row">
-            <input id="summary-topics" class="input" placeholder="(Optional) Focus the summary on certain topics, e.g. burnout, habits" />
-          </div>
-          <div style="height:10px"></div>
-          <div class="row">
-            <button class="btn" id="summarizeBtn">Summarize last 7 days</button>
-            <span class="muted" id="summary-hint">Requires a serverless endpoint at <code>/api/summarize</code>.</span>
-          </div>
-          <div style="height:12px"></div>
-          <div id="summaryBox" class="entry" style="display:none"></div>
-        </div>
+    <!-- HEADER -->
+    <header class="card rainbow-frame">
+      <div class="card-inner">
+        <h1 class="rainbow-title">Healing Diary</h1>
+        <div class="subtitle">Write, tag, search, export to PDF — and get an AI newsletter-style summary.</div>
       </div>
+    </header>
 
-      <!-- Right: Entries -->
-      <div class="card">
-        <div class="section">
-          <h2 class="kicker">Your entries</h2>
-          <div class="row controls">
-            <input id="search" class="input" placeholder="Search…" />
-            <button id="resetSearch" class="btn secondary">Reset</button>
+    <div class="grid">
+      <!-- LEFT: NEW ENTRY & SUMMARY -->
+      <section class="card rainbow-frame">
+        <div class="card-inner">
+          <div class="section-title">New Entry</div>
+
+          <label>Title</label>
+          <input id="title" class="input" placeholder="Give this a punchy title" />
+
+          <label>Topics (comma-separated)</label>
+          <input id="topic" class="input" placeholder="e.g. burnout, exercise, therapy, habits" />
+          <div id="tagPreview" class="row" style="margin-top:6px"></div>
+
+          <label>Notes</label>
+          <textarea id="text" class="input" placeholder="Write your thoughts here…"></textarea>
+
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" onclick="addEntry()">Save entry</button>
+            <button class="btn" onclick="clearForm()">Clear</button>
+            <button class="btn ghost" onclick="exportPdf()">Export PDF</button>
           </div>
-          <div style="height:10px"></div>
-          <div id="entries"></div>
+
+          <div class="rainbow-divider"></div>
+
+          <div class="section-title">AI Summary</div>
+          <div class="small muted" style="margin-bottom:8px">Optionally focus the summary on certain topics</div>
+          <input id="focusTopics" class="input" placeholder="(Optional) Focus the summary on: burnout, sleep, wins…" />
+          <div class="row" style="margin-top:10px">
+            <button class="btn" onclick="summarizeLast7()">Summarize last 7 days</button>
+            <span class="small muted">Requires the serverless endpoint at <code>/api/summarize</code>.</span>
+          </div>
+          <div id="summary" class="summary-box" style="margin-top:12px">Weekly Newsletter Draft will appear here…</div>
         </div>
-      </div>
+      </section>
+
+      <!-- RIGHT: ENTRIES LIST -->
+      <aside class="card rainbow-frame">
+        <div class="card-inner">
+          <div class="section-title">Your Entries</div>
+          <div class="row-stretch">
+            <input id="search" class="input" placeholder="Search…" oninput="renderEntries()" />
+            <button class="btn" onclick="resetSearch()">Reset</button>
+          </div>
+
+          <div id="entries" style="margin-top:14px"></div>
+        </div>
+      </aside>
     </div>
   </div>
 
-  <script>
-    // ---------- State & persistence ----------
-    const $ = (sel) => document.querySelector(sel);
-    const entriesKey = "healing_diary_entries_v3";
+<script>
+/* ----------------- Local storage helpers ----------------- */
+const LS_KEY = "healing_diary_entries_v2";
 
-    function loadEntries(){
-      try { return JSON.parse(localStorage.getItem(entriesKey) || "[]"); }
-      catch { return []; }
-    }
-    function saveEntries(list){
-      localStorage.setItem(entriesKey, JSON.stringify(list));
-    }
+function loadEntries(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || [] }
+  catch{ return [] }
+}
+function saveEntries(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)) }
 
-    function tagChips(topicsStr){
-      const topics = topicsStr.split(",").map(t=>t.trim()).filter(Boolean);
-      if(!topics.length) return "";
-      return topics.map(t => `<span class="rainbow-chip">${t}</span>`).join(" ");
-    }
+/* ----------------- Tags preview while typing ----------------- */
+function splitTopics(s){
+  return s.split(",").map(t => t.trim()).filter(Boolean);
+}
+function tagChips(topicsStr){
+  const topics = splitTopics(topicsStr);
+  if(!topics.length) return "";
+  return topics.map(t => `<span class="rainbow-chip">${t}</span>`).join(" ");
+}
+const topicEl = document.getElementById("topic");
+topicEl.addEventListener("input", () => {
+  document.getElementById("tagPreview").innerHTML = tagChips(topicEl.value);
+});
 
-    function render(){
-      const q = ($("#search").value || "").toLowerCase().trim();
-      const list = loadEntries().sort((a,b)=>b.created-a.created);
-      const filtered = q
-        ? list.filter(e =>
-            e.text.toLowerCase().includes(q) ||
-            (e.topics||"").toLowerCase().includes(q)
-          )
-        : list;
+/* ----------------- CRUD ----------------- */
+function clearForm(){
+  document.getElementById("title").value = "";
+  document.getElementById("topic").value = "";
+  document.getElementById("text").value  = "";
+  document.getElementById("tagPreview").innerHTML = "";
+}
 
-      const html = filtered.map(e => `
-        <div class="entry" style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-            <div>
-              <div class="rainbow-text" style="font-weight:800">${new Date(e.created).toLocaleString()}</div>
-              <div class="muted" style="margin-top:4px">${tagChips(e.topics||"")}</div>
-            </div>
-            <div class="row">
-              <button class="btn secondary" onclick="removeEntry('${e.id}')">Delete</button>
-            </div>
-          </div>
-          <div style="height:10px"></div>
-          <div style="white-space:pre-wrap">${escapeHtml(e.text)}</div>
-        </div>
-      `).join("");
+function addEntry(){
+  const title = document.getElementById("title").value.trim();
+  const topics = document.getElementById("topic").value.trim();
+  const text  = document.getElementById("text").value.trim();
+  if(!text && !title){ alert("Write something first 😊"); return }
 
-      $("#entries").innerHTML = html || `<div class="muted">No entries yet — start by writing on the left.</div>`;
-    }
+  const entries = loadEntries();
+  entries.unshift({
+    id: crypto.randomUUID(),
+    created: Date.now(),
+    title, topics, text
+  });
+  saveEntries(entries);
+  clearForm();
+  renderEntries();
+}
 
-    function escapeHtml(s){
-      return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
+function deleteEntry(id){
+  const entries = loadEntries().filter(e => e.id !== id);
+  saveEntries(entries);
+  renderEntries();
+}
 
-    // ---------- Actions ----------
-    $("#saveBtn").addEventListener("click", () => {
-      const text = $("#text").value.trim();
-      const topics = $("#topic").value.trim();
-      if(!text){
-        $("#text").focus();
-        return;
-      }
-      const list = loadEntries();
-      list.push({ id: crypto.randomUUID(), created: Date.now(), text, topics });
-      saveEntries(list);
-      $("#text").value = "";
-      // keep topics (handy if journaling the same theme)
-      render();
+/* ----------------- Render ----------------- */
+function formatDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}) +
+         " " +
+         d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+}
+
+function snippet(s, n=180){ s = s || ""; return s.length>n ? s.slice(0,n)+"…" : s }
+
+function renderEntries(){
+  const q = (document.getElementById("search").value || "").toLowerCase();
+  const wrap = document.getElementById("entries");
+  const entries = loadEntries().filter(e=>{
+    const hay = (e.title+" "+e.topics+" "+e.text).toLowerCase();
+    return hay.includes(q);
+  });
+
+  if(!entries.length){
+    wrap.innerHTML = `<div class="muted small">No entries yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = entries.map(e => `
+    <div class="entry">
+      <div class="toolbar">
+        <button class="btn warn" onclick="deleteEntry('${e.id}')">Delete</button>
+      </div>
+      <time>${formatDate(e.created)}</time>
+      ${e.topics ? `<div style="margin:6px 0">${tagChips(e.topics)}</div>` : ""}
+      ${e.title ? `<div class="title">${e.title}</div>` : ""}
+      <div class="text">${snippet(e.text)}</div>
+    </div>
+  `).join("");
+}
+
+function resetSearch(){
+  document.getElementById("search").value = "";
+  renderEntries();
+}
+
+/* ----------------- Export PDF ----------------- */
+function exportPdf(){
+  const node = document.querySelector(".wrap");
+  const opt = {
+    margin:       10,
+    filename:     `HealingDiary_${new Date().toISOString().slice(0,10)}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS:true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(node).save();
+}
+
+/* ----------------- AI Summary ----------------- */
+async function summarizeLast7(){
+  const all = loadEntries();
+  const weekAgo = Date.now() - 7*24*60*60*1000;
+  const recent = all.filter(e => e.created >= weekAgo);
+  const topics = document.getElementById("focusTopics").value;
+
+  const out = document.getElementById("summary");
+  out.textContent = "Summarizing…";
+
+  try{
+    const r = await fetch("/api/summarize",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ entries: recent, topics })
     });
-
-    $("#clearBtn").addEventListener("click", () => {
-      $("#text").value = "";
-      $("#text").focus();
-    });
-
-    $("#search").addEventListener("input", render);
-    $("#resetSearch").addEventListener("click", () => { $("#search").value=""; render(); });
-
-    window.removeEntry = (id) => {
-      const list = loadEntries().filter(e => e.id !== id);
-      saveEntries(list);
-      render();
-    };
-
-    // ---------- Summarize (calls your Vercel serverless function) ----------
-    $("#summarizeBtn").addEventListener("click", async () => {
-      const list = loadEntries().sort((a,b)=>b.created-a.created);
-      const sevenDaysAgo = Date.now() - 7*24*60*60*1000;
-      const recent = list.filter(e => e.created >= sevenDaysAgo);
-      if(!recent.length){
-        showSummary("No entries in the last 7 days to summarize.");
-        return;
-      }
-      const focus = $("#summary-topics").value.trim();
-
-      showSummary("Summarizing… this can take a few seconds.");
-      try{
-        const res = await fetch("/api/summarize",{
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({
-            topics: focus,
-            entries: recent.map(e => ({created:e.created, topics:e.topics||"", text:e.text}))
-          })
-        });
-
-        if(!res.ok){
-          const msg = await res.text();
-          showSummary("Server error: " + msg);
-          return;
-        }
-        const data = await res.json();
-        showSummary(data.summary || "No summary returned.");
-      }catch(err){
-        showSummary("Couldn’t reach /api/summarize. Deploy the API route & set OPENAI_API_KEY on Vercel.");
-      }
-    });
-
-    function showSummary(text){
-      const box = $("#summaryBox");
-      box.style.display = "block";
-      box.innerHTML = `
-        <div style="font-weight:800" class="rainbow-text">Weekly Newsletter Draft</div>
-        <div style="height:8px"></div>
-        <div style="white-space:pre-wrap">${escapeHtml(text)}</div>
-      `;
+    if(!r.ok){
+      const text = await r.text();
+      throw new Error(text || `HTTP ${r.status}`);
     }
+    const data = await r.json();
+    out.textContent = data.summary || "(No summary returned)";
+  }catch(err){
+    out.innerHTML = `Server error: ${err.message}\n\nTip: Ensure your Vercel project has an <b>OPENAI_API_KEY</b> and that <code>api/summarize.js</code> exists.`;
+  }
+}
 
-    // ---------- Export to PDF (captures main grid) ----------
-    $("#pdfBtn").addEventListener("click", async () => {
-      const node = document.getElementById("page-grid");
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff" });
-      const img = canvas.toDataURL("image/png");
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ unit:"pt", format:"a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const imgWidth = pageWidth - 60; // margins
-      const imgHeight = canvas.height * (imgWidth/canvas.width);
-
-      let y = 40;
-      if(imgHeight <= pageHeight - 80){
-        pdf.addImage(img, "PNG", 30, y, imgWidth, imgHeight, "", "FAST");
-      }else{
-        // split across pages
-        let sHeight = imgHeight;
-        let sY = 0;
-        const onePageHeight = pageHeight - 80;
-        while(sHeight > 0){
-          pdf.addImage(img, "PNG", 30, 40 - sY, imgWidth, imgHeight, "", "FAST");
-          sHeight -= onePageHeight;
-          sY += onePageHeight;
-          if(sHeight > 0) pdf.addPage();
-        }
-      }
-      pdf.save(`healing-diary-${new Date().toISOString().slice(0,10)}.pdf`);
-    });
-
-    // First render
-    render();
-  </script>
+/* ----------------- Init ----------------- */
+renderEntries();
+</script>
 </body>
 </html>
