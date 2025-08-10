@@ -1,499 +1,167 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Healing Diary</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healing Journey Diary</title>
 
-  <!-- Pastel animated background + glassmorphism card -->
-  <style>
-    :root{
-      --card-bg: rgba(255,255,255,0.7);
-      --card-blur: 14px;
-      --ring: rgba(255,255,255,0.6);
-      --text: #243043;
-    }
-    html, body { height: 100%; }
-    body{
-      margin:0;
-      color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: linear-gradient(120deg,#ffe4ec,#fff7cc,#e3fff5,#e6e9ff,#ffe4ec);
-      background-size: 300% 300%;
-      animation: gradientShift 18s ease infinite;
-    }
-    @keyframes gradientShift{
-      0%{background-position:0% 50%}
-      50%{background-position:100% 50%}
-      100%{background-position:0% 50%}
-    }
-    .page { max-width: 1100px; padding: 32px 20px 56px; margin: 0 auto; }
-    .title {
-      font-size: clamp(28px, 3.5vw, 40px);
-      font-weight: 800;
-      letter-spacing: 0.2px;
-      margin: 8px 0 22px;
-      text-align:center;
-      color:#1f2a3b;
-      text-shadow: 0 1px 0 rgba(255,255,255,.6);
-    }
-    .journal-card{
-      position:relative;
-      border-radius: 22px;
-      padding: 26px;
-      background: var(--card-bg);
-      backdrop-filter: blur(var(--card-blur));
-      -webkit-backdrop-filter: blur(var(--card-blur));
-      box-shadow:
-        0 20px 40px rgba(31,42,59,.12),
-        inset 0 1px 0 rgba(255,255,255,.5);
-      overflow: hidden;
-    }
-    .journal-card::before{
-      content:"";
-      position:absolute; inset:-2px;
-      border-radius: 24px;
-      padding:2px;
-      background:
-        conic-gradient(from 0deg,
-          #ffc0cb 0%, #ffd1a8 16%, #fff6a8 33%,
-          #b9ffd6 50%, #b8e4ff 66%, #e0c8ff 83%, #ffc0cb 100%);
-      -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-              mask-composite: exclude;
-      animation: ringSpin 8s linear infinite;
-      pointer-events:none;
-    }
-    @keyframes ringSpin{ to{ transform: rotate(360deg); } }
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    .row{ display:grid; gap:16px; grid-template-columns: 1fr 1fr; align-items: end; }
-    .row--single{ grid-template-columns: 1fr; }
-    @media (max-width: 860px){ .row{ grid-template-columns: 1fr; } }
-
-    label{ font-size:14px; opacity:.85; margin-bottom:6px; display:block; }
-    input[type="text"], input[type="date"], textarea, select{
-      width:100%;
-      border-radius:14px;
-      border:1px solid rgba(31,42,59,.12);
-      background: rgba(255,255,255,.88);
-      padding:14px 14px;
-      font-size:16px;
-      color:var(--text);
-      outline: none;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
-    }
-    textarea{ min-height:140px; resize:vertical; }
-
-    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-    .chip{
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:13px;
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(31,42,59,.12);
-      cursor:pointer;
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        color: #333;
+        background: linear-gradient(270deg, #ffd6e0, #e0f7fa, #e1bee7, #fff9c4);
+        background-size: 800% 800%;
+        animation: gradientShift 15s ease infinite;
     }
 
-    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-    .btn{
-      border:none;
-      border-radius:12px;
-      padding:11px 16px;
-      font-weight:600;
-      background:#ffffff;
-      box-shadow:
-        0 8px 20px rgba(31,42,59,.10),
-        inset 0 1px 0 rgba(255,255,255,.8);
-      cursor:pointer;
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
-    .btn.primary{ background:#1f2a3b; color:white; }
-    .btn.ghost{ background:rgba(255,255,255,.88); }
 
-    .section-title{ font-weight:700; margin:24px 0 8px; font-size:18px; opacity:.9; }
-
-    .entries{ margin-top:12px; display:grid; gap:14px; }
-    .entry{
-      background: rgba(255,255,255,.9);
-      border:1px solid rgba(31,42,59,.10);
-      border-radius:14px;
-      padding:14px;
+    .container {
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
     }
-    .entry h4{ margin:0 0 4px; }
-    .muted{ opacity:.7; font-size:13px; }
 
-    .toolbar{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    .toolbar .spacer{ flex:1; }
-
-    /* Print styling for clean PDF */
-    @media print{
-      body{ animation:none; background:white; }
-      .journal-card::before{ display:none; }
-      .toolbar, .chips, .btns, .controls, .filters{ display:none !important; }
-      .page{ max-width:none; padding:0; }
-      .title{ margin:0 0 12px; }
-      .entry{ page-break-inside: avoid; }
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 10px;
     }
-  </style>
+
+    .entry-box {
+        background: rgba(255,255,255,0.9);
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        margin-bottom: 20px;
+    }
+
+    input, textarea, button, select {
+        width: 100%;
+        padding: 10px;
+        margin: 6px 0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+
+    button {
+        background-color: #a7c7e7;
+        border: none;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #90b4d5;
+    }
+
+    .entry {
+        background: rgba(255,255,255,0.95);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .topic {
+        font-weight: bold;
+        color: #6a1b9a;
+    }
+</style>
 </head>
 <body>
-  <div class="page">
-    <h1 class="title">Healing Diary</h1>
+<div class="container">
+    <h1>Healing Journey Diary</h1>
 
-    <div class="journal-card">
-      <!-- Create entry -->
-      <div class="section-title">New Entry</div>
-      <div class="row">
-        <div>
-          <label for="date">Date</label>
-          <input id="date" type="date" />
-        </div>
-        <div>
-          <label for="topic">Topic</label>
-          <input id="topic" type="text" placeholder="e.g., Anxiety, Gratitude, Sleep" />
-        </div>
-      </div>
-      <div class="chips" id="topicChips"></div>
-      <div class="row row--single" style="margin-top:8px;">
-        <div>
-          <label for="text">Notes</label>
-          <textarea id="text" placeholder="Write freely about thoughts, feelings, triggers, wins…"></textarea>
-        </div>
-      </div>
-      <div class="btns">
-        <button class="btn primary" id="saveBtn">Save entry</button>
-        <button class="btn ghost" id="clearBtn">Clear</button>
-      </div>
-
-      <!-- Filters & tools -->
-      <div class="section-title">Browse</div>
-      <div class="row">
-        <div>
-          <label for="search">Search</label>
-          <input id="search" type="text" placeholder="Search text or topic…" />
-        </div>
-        <div>
-          <label for="filterTopic">Filter by topic</label>
-          <select id="filterTopic">
-            <option value="">All topics</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="toolbar" style="margin-top:12px;">
-        <div class="btns">
-          <button class="btn" id="exportJson">Export JSON</button>
-          <button class="btn" id="exportCsv">Export CSV</button>
-          <button class="btn" id="exportPdf">Export PDF</button>
-          <label class="btn ghost" style="cursor:pointer;">
-            Import JSON
-            <input id="importJson" type="file" accept="application/json" style="display:none;">
-          </label>
-        </div>
-        <div class="spacer"></div>
-        <button class="btn" id="summarizeBtn" title="Create simple local summaries (no AI key needed)">Summarize by Topic</button>
-      </div>
-
-      <!-- Summaries -->
-      <div id="summaryWrap" style="display:none; margin-top:12px;">
-        <div class="section-title">Summaries</div>
-        <div id="summaries" class="entries"></div>
-      </div>
-
-      <!-- Entries -->
-      <div class="section-title">Entries</div>
-      <div id="entries" class="entries"></div>
+    <div class="entry-box">
+        <input type="text" id="topic" placeholder="Topic (e.g. Trauma, Therapy)">
+        <textarea id="content" rows="4" placeholder="Write your thoughts here..."></textarea>
+        <button onclick="addEntry()">Add Entry</button>
+        <button onclick="exportPDF()">Export as PDF</button>
     </div>
-  </div>
 
-  <script>
-    // ---------- Storage helpers ----------
-    const STORAGE_KEY = "healingDiaryEntries_v2";
-    const $ = (id) => document.getElementById(id);
+    <div class="entry-box">
+        <input type="text" id="search" placeholder="Search by topic..." oninput="searchEntries()">
+    </div>
 
-    const todayISO = () => {
-      const d = new Date();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      return `${d.getFullYear()}-${m}-${day}`;
-    };
+    <div id="entries"></div>
+</div>
 
-    const load = () => {
-      try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-      catch{ return []; }
-    };
-    const saveAll = (arr) => localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+<script>
+    let entries = JSON.parse(localStorage.getItem("diaryEntries")) || [];
 
-    // ---------- State ----------
-    let entries = load();
-    let searchTerm = "";
-    let filterTopic = "";
+    function addEntry() {
+        const topic = document.getElementById("topic").value.trim();
+        const content = document.getElementById("content").value.trim();
+        if (!topic || !content) return alert("Please fill in both fields");
 
-    // ---------- DOM refs ----------
-    const dateEl = $("date");
-    const topicEl = $("topic");
-    const textEl = $("text");
-    const entriesEl = $("entries");
-    const searchEl = $("search");
-    const filterTopicEl = $("filterTopic");
-    const chipsEl = $("topicChips");
-    const summariesEl = $("summaries");
-    const summaryWrapEl = $("summaryWrap");
+        const newEntry = {
+            topic,
+            content,
+            date: new Date().toLocaleString()
+        };
 
-    // ---------- Init ----------
-    dateEl.value = todayISO();
-    renderAll();
-
-    // Suggested topic chips from existing data
-    function renderTopicChips() {
-      const topics = [...new Set(entries.map(e => e.topic).filter(Boolean))].slice(0, 12);
-      chipsEl.innerHTML = topics.map(t => `<button class="chip" data-topic="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("");
-      chipsEl.querySelectorAll(".chip").forEach(btn => {
-        btn.addEventListener("click", () => { topicEl.value = btn.dataset.topic; topicEl.focus(); });
-      });
+        entries.unshift(newEntry);
+        localStorage.setItem("diaryEntries", JSON.stringify(entries));
+        renderEntries();
+        document.getElementById("topic").value = "";
+        document.getElementById("content").value = "";
     }
 
-    function renderFilterDropdown() {
-      const current = filterTopicEl.value;
-      const topics = [...new Set(entries.map(e => e.topic).filter(Boolean))].sort();
-      filterTopicEl.innerHTML = `<option value="">All topics</option>` +
-        topics.map(t => `<option value="${escapeHtml(t)}"${t===current?' selected':''}>${escapeHtml(t)}</option>`).join("");
+    function renderEntries(filter = "") {
+        const container = document.getElementById("entries");
+        container.innerHTML = "";
+        entries
+            .filter(e => e.topic.toLowerCase().includes(filter.toLowerCase()))
+            .forEach(e => {
+                const div = document.createElement("div");
+                div.className = "entry";
+                div.innerHTML = `<div class="topic">${e.topic}</div>
+                                 <div><em>${e.date}</em></div>
+                                 <p>${e.content}</p>`;
+                container.appendChild(div);
+            });
     }
 
-    // ---------- Render entries ----------
-    function renderEntries() {
-      const term = searchTerm.trim().toLowerCase();
-      const list = entries
-        .filter(e => !filterTopic || e.topic === filterTopic)
-        .filter(e =>
-          !term ||
-          (e.topic && e.topic.toLowerCase().includes(term)) ||
-          (e.text && e.text.toLowerCase().includes(term))
-        )
-        .sort((a,b) => b.date.localeCompare(a.date));
+    function searchEntries() {
+        const filter = document.getElementById("search").value;
+        renderEntries(filter);
+    }
 
-      if (list.length === 0) {
-        entriesEl.innerHTML = `<div class="muted">No entries found.</div>`;
-        return;
-      }
+    async function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let y = 10;
+        doc.setFontSize(16);
+        doc.text("Healing Journey Diary", 10, y);
+        y += 10;
 
-      entriesEl.innerHTML = list.map(e => `
-        <div class="entry">
-          <h4>${escapeHtml(e.topic || "Untitled")}</h4>
-          <div class="muted">${escapeHtml(e.date)}</div>
-          <div>${nl2br(escapeHtml(e.text || ""))}</div>
-          <div class="btns" style="margin-top:10px;">
-            <button class="btn ghost" data-edit="${e.id}">Edit</button>
-            <button class="btn ghost" data-del="${e.id}">Delete</button>
-          </div>
-        </div>
-      `).join("");
-
-      // wire buttons
-      entriesEl.querySelectorAll("[data-del]").forEach(btn=>{
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-del");
-          entries = entries.filter(x => x.id !== id);
-          saveAll(entries);
-          renderAll();
+        entries.forEach(e => {
+            doc.setFontSize(12);
+            doc.text(`Topic: ${e.topic}`, 10, y);
+            y += 6;
+            doc.setFontSize(10);
+            let splitText = doc.splitTextToSize(`${e.date} - ${e.content}`, 180);
+            doc.text(splitText, 10, y);
+            y += splitText.length * 5 + 5;
         });
-      });
-      entriesEl.querySelectorAll("[data-edit]").forEach(btn=>{
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-edit");
-          const e = entries.find(x => x.id === id);
-          if (!e) return;
-          dateEl.value = e.date;
-          topicEl.value = e.topic;
-          textEl.value = e.text;
-          // remove it so re-saving becomes an update
-          entries = entries.filter(x => x.id !== id);
-          saveAll(entries);
-          renderAll();
-          topicEl.focus();
-        });
-      });
+
+        doc.save("Healing_Journey_Diary.pdf");
     }
 
-    function renderAll(){
-      renderEntries();
-      renderTopicChips();
-      renderFilterDropdown();
+    // Placeholder for GPT summary integration
+    async function summariseEntries() {
+        alert("GPT-5 summary integration placeholder – will connect to OpenAI API later.");
     }
 
-    // ---------- Actions ----------
-    $("saveBtn").addEventListener("click", () => {
-      const date = dateEl.value || todayISO();
-      const topic = (topicEl.value || "").trim();
-      const text  = (textEl.value  || "").trim();
-      if (!topic && !text){ alert("Please add a topic or some notes."); return; }
-
-      entries.push({ id: crypto.randomUUID(), date, topic, text });
-      saveAll(entries);
-
-      // clear text only
-      textEl.value = "";
-      topicEl.value = topic; // keep topic for faster multiple notes
-      renderAll();
-    });
-
-    $("clearBtn").addEventListener("click", () => {
-      topicEl.value = "";
-      textEl.value = "";
-      topicEl.focus();
-    });
-
-    searchEl.addEventListener("input", (e)=>{ searchTerm = e.target.value; renderEntries(); });
-    filterTopicEl.addEventListener("change", (e)=>{ filterTopic = e.target.value; renderEntries(); });
-
-    // ---------- Export / Import ----------
-    $("exportJson").addEventListener("click", () => {
-      downloadFile("healing-diary.json", JSON.stringify(entries, null, 2), "application/json");
-    });
-
-    $("exportCsv").addEventListener("click", () => {
-      const header = ["date","topic","text"];
-      const csv = [header.join(",")].concat(
-        entries.map(e => [e.date, safeCsv(e.topic), safeCsv(e.text)].join(","))
-      ).join("\n");
-      downloadFile("healing-diary.csv", csv, "text/csv");
-    });
-
-    // Clean print-to-PDF: opens print dialog, user saves as PDF
-    $("exportPdf").addEventListener("click", () => {
-      const printable = entries
-        .sort((a,b) => b.date.localeCompare(a.date))
-        .map(e => `
-          <div style="margin:0 0 14px; padding:12px; border:1px solid #e6e8ef; border-radius:12px;">
-            <div style="font-weight:700">${escapeHtml(e.topic || "Untitled")}</div>
-            <div style="opacity:.7; font-size:13px; margin:2px 0 8px;">${escapeHtml(e.date)}</div>
-            <div style="white-space:pre-wrap;">${escapeHtml(e.text || "")}</div>
-          </div>
-        `).join("");
-
-      const w = window.open("", "_blank");
-      w.document.write(`
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <title>Healing Diary – Export</title>
-            <style>
-              body{ font-family: Arial, Helvetica, sans-serif; padding:24px; color:#243043; }
-              h1{ margin:0 0 12px; }
-              @media print{ h1{ margin-bottom:8px; } }
-            </style>
-          </head>
-          <body>
-            <h1>Healing Diary</h1>
-            <div>${printable || "<div style='opacity:.7;'>No entries.</div>"}</div>
-            <script>window.onload = () => setTimeout(()=>window.print(), 50)</script>
-          </body>
-        </html>
-      `);
-      w.document.close();
-    });
-
-    $("importJson").addEventListener("change", (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try{
-          const data = JSON.parse(reader.result);
-          if (!Array.isArray(data)) throw new Error("Invalid JSON");
-          // basic shape guard
-          const cleaned = data.map(x => ({
-            id: x.id || crypto.randomUUID(),
-            date: x.date || todayISO(),
-            topic: typeof x.topic === "string" ? x.topic : "",
-            text: typeof x.text === "string" ? x.text : ""
-          }));
-          entries = cleaned;
-          saveAll(entries);
-          renderAll();
-          alert("Imported successfully.");
-        }catch(err){
-          alert("Import failed. Make sure it's a JSON exported from this app.");
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = "";
-    });
-
-    // ---------- Local Summaries (no AI) ----------
-    $("summarizeBtn").addEventListener("click", () => {
-      const byTopic = groupBy(entries, e => (e.topic || "Untitled").trim());
-      const topics = Object.keys(byTopic).sort();
-
-      if (topics.length === 0){
-        summaryWrapEl.style.display = "none";
-        summariesEl.innerHTML = "";
-        return;
-      }
-
-      const items = topics.map(t => {
-        const list = byTopic[t].sort((a,b)=> b.date.localeCompare(a.date));
-        const count = list.length;
-        // naive highlight: most common words (excluding short ones)
-        const textBlob = list.map(e=>e.text||"").join(" ").toLowerCase();
-        const topWords = freqTop(textBlob, 6).join(", ");
-        // pick 2 short snippets
-        const snippets = list.slice(0,2).map(e => shorten(e.text || "", 200));
-
-        return `
-          <div class="entry">
-            <h4>${escapeHtml(t)} — ${count} entr${count===1?"y":"ies"}</h4>
-            <div class="muted" style="margin:2px 0 8px;">Keywords: ${escapeHtml(topWords || "—")}</div>
-            ${snippets.map(s => s ? `<div style="margin:6px 0;">• ${escapeHtml(s)}</div>` : "").join("")}
-          </div>
-        `;
-      }).join("");
-
-      summariesEl.innerHTML = items;
-      summaryWrapEl.style.display = "block";
-      summariesEl.scrollIntoView({behavior:"smooth", block:"start"});
-    });
-
-    // ---------- Utils ----------
-    function escapeHtml(s=""){
-      return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    }
-    function nl2br(s=""){ return s.replace(/\n/g, "<br>"); }
-    function downloadFile(name, content, type){
-      const blob = new Blob([content], {type});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
-    function safeCsv(v=""){
-      const s = String(v).replace(/"/g,'""');
-      return `"${s}"`;
-    }
-    function groupBy(arr, keyFn){
-      return arr.reduce((acc, item) => {
-        const k = keyFn(item);
-        (acc[k] ||= []).push(item);
-        return acc;
-      }, {});
-    }
-    function freqTop(text, n=5){
-      const words = text.split(/[^\p{L}\p{N}']+/u).filter(w => w.length > 3);
-      const stop = new Set(["about","with","this","that","have","from","your","when","what","will","just","they","them","been","into","there","their","then","were","because","which","like","want","need","really","also","than","more"]);
-      const map = new Map();
-      for (const w of words){
-        if (stop.has(w)) continue;
-        map.set(w, (map.get(w)||0)+1);
-      }
-      return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>x[0]);
-    }
-    function shorten(s, max){
-      if (!s) return "";
-      const t = s.trim().replace(/\s+/g,' ');
-      return t.length <= max ? t : t.slice(0, max-1) + "…";
-    }
-  </script>
+    renderEntries();
+</script>
 </body>
 </html>
