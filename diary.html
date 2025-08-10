@@ -167,7 +167,7 @@
           <input id="focusTopics" class="input" placeholder="(Optional) Focus the summary on: burnout, sleep, wins…" />
           <div class="row" style="margin-top:10px">
             <button class="btn" onclick="summarizeLast7()">Summarize last 7 days</button>
-            <span class="small muted">Requires the serverless endpoint at <code>/api/summarize</code>.</span>
+            <span class="small muted">Requires your API at <code>/api/summarize</code>.</span>
           </div>
           <div id="summary" class="summary-box" style="margin-top:12px">Weekly Newsletter Draft will appear here…</div>
         </div>
@@ -228,7 +228,7 @@ function addEntry(){
 
   const entries = loadEntries();
   entries.unshift({
-    id: crypto.randomUUID(),
+    id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2),
     created: Date.now(),
     title, topics, text
   });
@@ -303,24 +303,37 @@ async function summarizeLast7(){
   const weekAgo = Date.now() - 7*24*60*60*1000;
   const recent = all.filter(e => e.created >= weekAgo);
   const topics = document.getElementById("focusTopics").value;
-
   const out = document.getElementById("summary");
   out.textContent = "Summarizing…";
 
+  // Abort after 25s so UI doesn't hang forever
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
   try{
-    const r = await fetch("/api/summarize",{
+    const r = await fetch(`${location.origin}/api/summarize`,{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ entries: recent, topics })
+      body: JSON.stringify({ entries: recent, topics }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeout);
+
+    const text = await r.text(); // get raw text for clearer error display
     if(!r.ok){
-      const text = await r.text();
-      throw new Error(text || `HTTP ${r.status}`);
+      out.innerHTML = `Server error: ${r.status} ${r.statusText}<br><pre style="white-space:pre-wrap">${text}</pre>`;
+      return;
     }
-    const data = await r.json();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      out.innerHTML = `Bad JSON from server:<br><pre style="white-space:pre-wrap">${text}</pre>`;
+      return;
+    }
     out.textContent = data.summary || "(No summary returned)";
   }catch(err){
-    out.innerHTML = `Server error: ${err.message}\n\nTip: Ensure your Vercel project has an <b>OPENAI_API_KEY</b> and that <code>api/summarize.js</code> exists.`;
+    clearTimeout(timeout);
+    out.innerHTML = `Network error: ${err.message}<br><small>Check your API route and OPENAI_API_KEY.</small>`;
   }
 }
 
