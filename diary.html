@@ -7,33 +7,37 @@
   <style>
     :root{
       --bg1:#fde1e7; --bg2:#e7f6ff; --bg3:#eaf8f2; --bg4:#f7ecff;
-      --ink:#354052; --ink-soft:#556070; --panel:#ffffff;
-      --ring: 0 0 0 3px rgba(255,255,255,.7), 0 10px 30px rgba(43,45,66,.08);
+      --ink:#2f3a4b; --ink-soft:#566074;
+      --panel: rgba(255,255,255,.86); /* softer than pure white */
+      --ring: 0 0 0 3px rgba(255,255,255,.55), 0 10px 30px rgba(43,45,66,.08);
 
-      /* Rainbow stops (pastel) */
       --rp0:#ffadd6; --rp1:#ffc7a8; --rp2:#ffe8a6; --rp3:#bff4c6;
       --rp4:#a9ecff; --rp5:#c8c7ff; --rp6:#f6bfff;
 
-      /* chip bg transparencies */
-      --chipA: .28; --chipB: .65;
+      --chipA: .28;
     }
 
     /* Animated pastel background */
+    html,body{height:100%}
     body{
-      margin:0; color:var(--ink); font:16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      margin:0; color:var(--ink); font:16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
       background: linear-gradient(115deg,var(--bg1),var(--bg2),var(--bg3),var(--bg4));
-      background-size: 200% 200%;
+      background-size: 220% 220%;
       animation: floatBg 18s ease-in-out infinite;
     }
     @keyframes floatBg{ 0%{background-position:0 0} 50%{background-position:100% 100%} 100%{background-position:0 0} }
 
-    .wrap{ max-width: 1100px; margin: 40px auto 80px; padding: 24px; }
+    .wrap{ max-width: 1100px; margin: 36px auto 80px; padding: 0 18px; }
+
+    /* Card panels */
     .card{
       background: var(--panel);
       border-radius: 22px;
       box-shadow: var(--ring);
       padding: 20px;
       backdrop-filter: blur(6px);
+      margin-bottom: 22px;      /* give every section air so nothing overlaps */
+      position: relative;       /* prevent weird stacking */
     }
 
     /* Rainbow headline */
@@ -51,12 +55,12 @@
     }
     @keyframes sweep{ 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
 
-    /* Controls layout */
-    .grid{ display:grid; gap:14px; grid-template-columns: repeat(12,1fr); }
+    /* Layout */
+    .grid{ display:grid; gap:14px; grid-template-columns: repeat(12,1fr); align-items:start; }
     .col-12{ grid-column: span 12; } .col-6{ grid-column: span 6; } .col-4{ grid-column: span 4; }
     @media (max-width:900px){ .col-6,.col-4{ grid-column: span 12; } }
 
-    label{ font-size:13px; font-weight:700; color:#5b6474; display:block; margin: 6px 0 6px; }
+    label{ font-size:13px; font-weight:700; color:var(--ink-soft); display:block; margin: 6px 0 6px; }
     input[type="text"], textarea, select{
       width:100%; border:1px solid #e7e9ee; background:#fff; color:var(--ink);
       border-radius: 14px; padding: 12px 14px; outline:none;
@@ -67,6 +71,7 @@
     .btn{
       border:0; padding: 12px 16px; border-radius: 14px; font-weight: 700; cursor: pointer;
       transition: transform .05s ease, filter .2s ease;
+      background:#eff2f8;
     }
     .btn:active{ transform: translateY(1px) }
 
@@ -85,15 +90,13 @@
       display:inline-flex; align-items:center; gap:8px;
       padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px;
       background: linear-gradient(135deg,
-        color-mix(in srgb, var(--rp0) var(--chipA), #fff 1%),
-        color-mix(in srgb, var(--rp2) var(--chipA), #fff 1%));
-      border: 1px solid color-mix(in srgb, var(--rp0) 30%, #fff);
+        rgba(255,173,214,var(--chipA)),
+        rgba(255,232,166,var(--chipA)));
+      border: 1px solid rgba(255,173,214,.5);
       box-shadow: 0 3px 10px rgba(0,0,0,.06);
     }
     .chip .x{ cursor:pointer; font-weight:900; padding:0 4px; opacity:.65 }
     .chip .x:hover{ opacity:1 }
-
-    /* Make chips cycle through rainbow hues */
     .chip[data-hue="0"]{ background: linear-gradient(135deg, rgba(255,173,214,.28), rgba(255,231,166,.28)); border-color: rgba(255,173,214,.5); }
     .chip[data-hue="1"]{ background: linear-gradient(135deg, rgba(255,199,168,.28), rgba(191,244,198,.28)); border-color: rgba(255,199,168,.5); }
     .chip[data-hue="2"]{ background: linear-gradient(135deg, rgba(255,232,166,.28), rgba(169,236,255,.28)); border-color: rgba(255,232,166,.5); }
@@ -116,7 +119,6 @@
 
     .list{ display:grid; gap:12px; }
     .muted{ color:#718096 }
-
     .row{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
 
     .box-title{
@@ -132,7 +134,7 @@
 </head>
 <body>
   <div class="wrap">
-    <header class="card" style="margin-bottom:16px">
+    <header class="card">
       <h1 class="title">Healing Journey Diary</h1>
       <div class="row">
         <button class="btn btn-rainbow" id="addBtn">Add Entry</button>
@@ -141,7 +143,7 @@
     </header>
 
     <!-- Add Entry -->
-    <section class="card" style="margin-bottom:16px">
+    <section class="card">
       <h3 class="box-title">New Entry</h3>
       <div class="grid">
         <div class="col-6">
@@ -171,7 +173,7 @@
     </section>
 
     <!-- Filters / Search -->
-    <section class="card" style="margin-bottom:16px">
+    <section class="card">
       <h3 class="box-title">Search & Filter</h3>
       <div class="grid">
         <div class="col-4">
@@ -190,15 +192,18 @@
     </section>
 
     <!-- Summaries -->
-    <section class="card" style="margin-bottom:16px">
+    <section class="card">
       <h3 class="box-title">Summarize Topics</h3>
       <div class="grid">
         <div class="col-12">
-          <label for="topicsMulti">Choose topics to summarize</label>
-          <select id="topicsMulti" multiple size="5" style="width:100%"></select>
+          <label for="topicsMultiInput">Topics to summarize (comma separated, or type <all>)</label>
+          <input id="topicsMultiInput" type="text" placeholder="e.g. Anxiety, Gratitude" />
         </div>
         <div class="col-12">
-          <button class="btn btn-rainbow" id="summarizeBtn">Summarize Selected Topics</button>
+          <div class="row">
+            <button class="btn btn-rainbow" id="summarizeBtn">Summarize (Newsletter Style)</button>
+            <small class="muted">If API isn’t configured, it will use a built-in summarizer.</small>
+          </div>
         </div>
         <div class="col-12">
           <div id="summaryOut" class="entry" style="display:none"></div>
@@ -207,7 +212,7 @@
     </section>
 
     <!-- Entries list -->
-    <section class="card">
+    <section class="card" id="entriesCard">
       <h3 class="box-title">Entries</h3>
       <div id="entries" class="list"></div>
       <p id="empty" class="muted" style="margin-top:8px; display:none;">No entries found.</p>
@@ -229,7 +234,8 @@
       tagsInput: $('tagsInput'), tagsBar: $('tagsBar'),
       search: $('search'), filterTopic: $('filterTopic'), filterTag: $('filterTag'),
       entries: $('entries'), empty: $('empty'),
-      topicsMulti: $('topicsMulti'), summarizeBtn: $('summarizeBtn'), summaryOut: $('summaryOut'),
+      topicsMultiInput: $('topicsMultiInput'), summarizeBtn: $('summarizeBtn'), summaryOut: $('summaryOut'),
+      entriesCard: $('entriesCard'),
     };
 
     // ------- TAGS -------
@@ -279,11 +285,6 @@
 
     // ------- RENDER LIST -------
     function refresh(){
-      // topics list for multi-select
-      const topics = [...new Set(entries.map(e=>e.topic))].sort((a,b)=>a.localeCompare(b));
-      const selected = new Set([...els.topicsMulti.options].filter(o=>o.selected).map(o=>o.value));
-      els.topicsMulti.innerHTML = topics.map(t=>`<option value="${escapeHtml(t)}" ${selected.has(t)?'selected':''}>${escapeHtml(t)}</option>`).join('');
-
       // filters
       const q = els.search.value.trim().toLowerCase();
       const fTopic = els.filterTopic.value.trim().toLowerCase();
@@ -320,42 +321,100 @@
 
     ['search','filterTopic','filterTag'].forEach(id=>$(id).addEventListener('input', refresh));
 
-    // ------- SUMMARY (client-side heuristic) -------
-    els.summarizeBtn.addEventListener('click', ()=>{
-      const chosen = [...els.topicsMulti.options].filter(o=>o.selected).map(o=>o.value);
-      if (!chosen.length){ alert('Select one or more topics first.'); return; }
-      const group = entries.filter(e=> chosen.includes(e.topic));
-      if (!group.length){ alert('No entries for selected topics.'); return; }
+    // ------- SUMMARY (GPT first, fallback to local “newsletter” style) -------
+    els.summarizeBtn.addEventListener('click', async ()=>{
+      const raw = els.topicsMultiInput.value.trim();
+      if (!raw){ alert('Type one or more topics (comma separated), or <all>.'); return; }
+      let chosen = raw.toLowerCase() === 'all'
+        ? [...new Set(entries.map(e=>e.topic))]
+        : raw.split(',').map(s=>s.trim()).filter(Boolean);
 
-      const text = group.map(e=>e.text).join(' ');
-      const summary = quickSummarize(text);
+      const group = entries.filter(e=> chosen.includes(e.topic));
+      if (!group.length){ alert('No entries for those topics.'); return; }
+
+      // Try calling Vercel API
+      let summary;
+      try{
+        const res = await fetch('/api/summarize', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ topics: chosen, entries: group }),
+        });
+        if(!res.ok) throw new Error('API error');
+        const data = await res.json();
+        summary = data.summary;
+      }catch(err){
+        // Fallback — local newsletter-style summarizer
+        summary = newsletterFallback(group);
+      }
+
       els.summaryOut.style.display = 'block';
       els.summaryOut.innerHTML = `
-        <div class="section-title" style="margin-bottom:6px">Summary (${chosen.join(', ')})</div>
+        <div class="section-title" style="margin-bottom:6px">Newsletter Summary (${escapeHtml(chosen.join(', '))})</div>
         <div>${nl2br(escapeHtml(summary))}</div>
       `;
     });
 
-    // Simple frequency + first-sentences extractor (no API needed)
-    function quickSummarize(text){
-      const sentences = text.split(/(?<=[.!?])\s+/).filter(s=>s.trim().length>0);
-      if (sentences.length <= 3) return sentences.join(' ');
+    function newsletterFallback(group){
+      // Merge all text
+      const texts = group.map(e=>e.text).join('\n');
+      const tags = group.flatMap(e=>e.tags);
+      const moods = group.map(e=>e.mood);
+      const moodCount = Object.fromEntries([...new Set(moods)].map(m=>[m, moods.filter(x=>x===m).length]));
+      const topTags = Object.entries(tags.reduce((a,t)=> (a[t]=(a[t]||0)+1, a), {}))
+        .sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>`#${t} (${c})`);
+
+      const sentences = texts.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const pulls = sentences.filter(s=>s.length<140).slice(0,3);
+
+      // Simple key points extract (freq-based)
+      const points = keyPoints(texts, 5);
+
+      return [
+        `Subject ideas:`,
+        `• Weekly Healing Highlights`,
+        `• Progress & Patterns Roundup`,
+        ``,
+        `Intro (2 sentences):`,
+        wrap(`This week’s entries highlight recurring themes across your focus topics. Here’s a quick brief you can paste into a newsletter and share (or keep for yourself).`),
+        ``,
+        `Key wins & bright spots:`,
+        ...points.wins.map(p=>'• '+p),
+        ``,
+        `Challenges & friction:`,
+        ...points.challenges.map(p=>'• '+p),
+        ``,
+        `Suggested next actions (small & specific):`,
+        ...points.actions.map(p=>'• '+p),
+        ``,
+        `Mood trend snapshot: ${Object.entries(moodCount).map(([m,c])=>`${m}×${c}`).join(' · ') || '—'}`,
+        `Top tags: ${topTags.join(' · ') || '—'}`,
+        ``,
+        `Notable lines you could quote:`,
+        ...pulls.map(p=>'“'+p.replace(/\n/g,' ')+'”'),
+      ].join('\n');
+    }
+
+    function keyPoints(text, n=5){
+      const sents = text.split(/(?<=[.!?])\s+/).filter(Boolean);
       const words = text.toLowerCase().match(/[a-z’']+/g) || [];
       const stop = new Set('i me my myself we our you your yours he she it they them a an the and or but if then so to of in on for with from at by as is are was were be been being feel feels felt feeling today this that those these not very really just have has had do did doing will would can could should may might'.split(' '));
       const freq = new Map();
       for (const w of words){ if (!stop.has(w) && w.length>2) freq.set(w, (freq.get(w)||0)+1); }
       const score = s => (s.toLowerCase().match(/[a-z’']+/g)||[]).reduce((acc,w)=>acc+(freq.get(w)||0),0);
-      const ranked = sentences.map(s=>({s,score:score(s)})).sort((a,b)=>b.score-a.score).slice(0,3).map(o=>o.s);
-      // include leading sentence for context
-      const lead = sentences[0];
-      const out = [lead, ...ranked.filter(s=>s!==lead)].slice(0,4);
-      return out.join(' ');
+      const ranked = sents.map(s=>({s,score:score(s)})).sort((a,b)=>b.score-a.score).slice(0, n*2).map(o=>o.s);
+
+      const bucket = (arr,label)=>arr.filter((_,i)=>i%3===label).slice(0,n);
+      return {
+        wins: bucket(ranked,0),
+        challenges: bucket(ranked,1),
+        actions: bucket(ranked,2).map(s=>s.replace(/^/,'Try: ')),
+      };
     }
 
     // ------- PDF EXPORT -------
-    els.exportBtn.addEventListener('click', async ()=>{
-      const target = document.querySelector('section.card:last-of-type'); // entries card
-      await exportElementToPDF(target, 'Healing-Diary.pdf');
+    $('exportBtn').addEventListener('click', async ()=>{
+      await exportElementToPDF(els.entriesCard, 'Healing-Diary.pdf');
     });
 
     async function exportElementToPDF(node, filename){
@@ -376,10 +435,7 @@
     function nl2br(s){ return s.replace(/\n/g,'<br>'); }
 
     // ------- INIT -------
-    function init(){
-      renderDraftTags();
-      refresh();
-    }
+    function init(){ renderDraftTags(); refresh(); }
     init();
   </script>
 </body>
