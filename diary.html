@@ -2,441 +2,360 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Healing Journey Diary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Healing Diary</title>
+
+  <!-- PDF libs (client-side export) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+
   <style>
     :root{
-      --bg1:#fde1e7; --bg2:#e7f6ff; --bg3:#eaf8f2; --bg4:#f7ecff;
-      --ink:#2f3a4b; --ink-soft:#566074;
-      --panel: rgba(255,255,255,.86); /* softer than pure white */
-      --ring: 0 0 0 3px rgba(255,255,255,.55), 0 10px 30px rgba(43,45,66,.08);
-
-      --rp0:#ffadd6; --rp1:#ffc7a8; --rp2:#ffe8a6; --rp3:#bff4c6;
-      --rp4:#a9ecff; --rp5:#c8c7ff; --rp6:#f6bfff;
-
-      --chipA: .28;
+      --bg1:#ffe0e9; --bg2:#e6f7ff; --bg3:#eaf7e4; --bg4:#fff3cd;
+      --ink:#1f2937; --card:#ffffffF2; --soft:#eef2ff;
+      --ring: 0 0 0 3px rgba(180,180,255,.35);
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
+      --radius: 18px;
+      --maxw: 1100px;
     }
 
     /* Animated pastel background */
-    html,body{height:100%}
     body{
-      margin:0; color:var(--ink); font:16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-      background: linear-gradient(115deg,var(--bg1),var(--bg2),var(--bg3),var(--bg4));
-      background-size: 220% 220%;
-      animation: floatBg 18s ease-in-out infinite;
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--ink);
+      background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg3), var(--bg4));
+      background-size: 300% 300%;
+      animation: pastelFlow 18s ease infinite;
     }
-    @keyframes floatBg{ 0%{background-position:0 0} 50%{background-position:100% 100%} 100%{background-position:0 0} }
+    @keyframes pastelFlow{
+      0%{ background-position: 0% 50% }
+      50%{ background-position: 100% 50% }
+      100%{ background-position: 0% 50% }
+    }
 
-    .wrap{ max-width: 1100px; margin: 36px auto 80px; padding: 0 18px; }
+    .wrap{
+      max-width: var(--maxw);
+      margin: 40px auto 80px;
+      padding: 0 20px;
+    }
 
-    /* Card panels */
     .card{
-      background: var(--panel);
-      border-radius: 22px;
-      box-shadow: var(--ring);
-      padding: 20px;
-      backdrop-filter: blur(6px);
-      margin-bottom: 22px;      /* give every section air so nothing overlaps */
-      position: relative;       /* prevent weird stacking */
+      background: var(--card);
+      backdrop-filter: saturate(150%) blur(12px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.55);
     }
 
-    /* Rainbow headline */
+    /* Rainbow text utilities */
+    .rainbow-text{
+      background: linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .rainbow-chip{
+      display:inline-flex; align-items:center; gap:.35rem;
+      background: linear-gradient(135deg,#fff,#fff0,#fff);
+      border: 1px solid rgba(0,0,0,.05);
+      border-radius: 999px; padding:.35rem .75rem; font-size:.85rem; font-weight:600;
+      position:relative; overflow:hidden;
+    }
+    .rainbow-chip::before{
+      content:"";
+      position:absolute; inset:-1px;
+      border-radius: 999px;
+      padding:1px;
+      background: linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+
     .title{
-      font-size: clamp(28px,3vw,40px);
-      font-weight: 800;
-      letter-spacing:.3px;
-      margin: 0 0 18px;
-      line-height:1.1;
-      background: linear-gradient(90deg,
-        var(--rp0),var(--rp1),var(--rp2),var(--rp3),var(--rp4),var(--rp5),var(--rp6));
-      background-size: 200% auto;
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      animation: sweep 8s linear infinite;
+      font-size: clamp(28px, 3.8vw, 46px);
+      line-height:1.1; letter-spacing:-.02em; margin:0 0 10px;
     }
-    @keyframes sweep{ 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
-
-    /* Layout */
-    .grid{ display:grid; gap:14px; grid-template-columns: repeat(12,1fr); align-items:start; }
-    .col-12{ grid-column: span 12; } .col-6{ grid-column: span 6; } .col-4{ grid-column: span 4; }
-    @media (max-width:900px){ .col-6,.col-4{ grid-column: span 12; } }
-
-    label{ font-size:13px; font-weight:700; color:var(--ink-soft); display:block; margin: 6px 0 6px; }
-    input[type="text"], textarea, select{
-      width:100%; border:1px solid #e7e9ee; background:#fff; color:var(--ink);
-      border-radius: 14px; padding: 12px 14px; outline:none;
-      box-shadow: inset 0 1px 0 rgba(0,0,0,.02);
+    .subtitle{
+      margin:0; opacity:.8; font-weight:500;
     }
-    textarea{ resize: vertical; min-height: 120px; }
+
+    .grid{
+      display:grid; gap:20px;
+      grid-template-columns: 1.2fr .8fr;
+    }
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: 1fr }
+    }
+
+    .section{ padding:22px }
+    .section h2{
+      margin:0 0 14px; font-size:1.15rem; letter-spacing:.02em;
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap }
+    .input, .textarea{
+      width:100%; border-radius:14px; border:1px solid #e9e9ef;
+      background:#fff; padding:12px 14px; font-size:1rem; outline:none;
+      box-shadow: 0 1px 0 rgba(0,0,0,.02) inset;
+    }
+    .input:focus, .textarea:focus{ box-shadow: var(--ring) }
+    .textarea{ min-height:140px; resize:vertical }
 
     .btn{
-      border:0; padding: 12px 16px; border-radius: 14px; font-weight: 700; cursor: pointer;
-      transition: transform .05s ease, filter .2s ease;
-      background:#eff2f8;
+      appearance:none; border:0; border-radius:14px; padding:12px 16px;
+      font-weight:700; cursor:pointer; transition:.18s transform ease;
+      background:#111827; color:#fff; box-shadow: 0 8px 20px rgba(17,24,39,.18);
     }
     .btn:active{ transform: translateY(1px) }
+    .btn.secondary{ background:#ffffff; color:#111827; border:1px solid #e8e8ef }
+    .btn.ghost{ background:transparent; color:#111827; border:1px dashed #cdd0f6 }
 
-    .btn-rainbow{
-      color:#26303f; background: linear-gradient(90deg,
-        color-mix(in oklab, var(--rp0) 65%, white 35%),
-        color-mix(in oklab, var(--rp2) 65%, white 35%),
-        color-mix(in oklab, var(--rp4) 65%, white 35%),
-        color-mix(in oklab, var(--rp6) 65%, white 35%)
-      );
-      box-shadow: 0 8px 20px rgba(180,170,255,.25);
-    }
-
-    .toolbar{ display:flex; gap:10px; flex-wrap: wrap; align-items:center }
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px;
-      background: linear-gradient(135deg,
-        rgba(255,173,214,var(--chipA)),
-        rgba(255,232,166,var(--chipA)));
-      border: 1px solid rgba(255,173,214,.5);
-      box-shadow: 0 3px 10px rgba(0,0,0,.06);
-    }
-    .chip .x{ cursor:pointer; font-weight:900; padding:0 4px; opacity:.65 }
-    .chip .x:hover{ opacity:1 }
-    .chip[data-hue="0"]{ background: linear-gradient(135deg, rgba(255,173,214,.28), rgba(255,231,166,.28)); border-color: rgba(255,173,214,.5); }
-    .chip[data-hue="1"]{ background: linear-gradient(135deg, rgba(255,199,168,.28), rgba(191,244,198,.28)); border-color: rgba(255,199,168,.5); }
-    .chip[data-hue="2"]{ background: linear-gradient(135deg, rgba(255,232,166,.28), rgba(169,236,255,.28)); border-color: rgba(255,232,166,.5); }
-    .chip[data-hue="3"]{ background: linear-gradient(135deg, rgba(191,244,198,.28), rgba(200,199,255,.28)); border-color: rgba(191,244,198,.5); }
-    .chip[data-hue="4"]{ background: linear-gradient(135deg, rgba(169,236,255,.28), rgba(246,191,255,.28)); border-color: rgba(169,236,255,.5); }
-
-    .section-title{
-      font-weight:900; margin: 4px 0 10px;
-      background: linear-gradient(90deg,var(--rp1),var(--rp3),var(--rp5));
-      -webkit-background-clip: text; background-clip:text; color:transparent;
+    .pill{
+      padding:8px 12px; border-radius:12px; background:#f7f7ff; border:1px solid #eceefb;
+      font-size:.9rem;
     }
 
     .entry{
-      border:1px solid #eef0f6; border-radius:18px; padding:14px 14px 12px;
-      background: #fff; box-shadow: 0 6px 16px rgba(20,24,40,.05);
+      padding:16px; border-radius:16px; border:1px solid #eff1ff;
+      background: #fff;
     }
-    .entry h4{ margin: 0 0 8px; font-size:16px }
-    .entry .meta{ font-size:12px; color:#6a7280; margin-bottom:8px }
-    .entry .tags{ display:flex; gap:8px; flex-wrap: wrap; margin-top:8px }
 
-    .list{ display:grid; gap:12px; }
-    .muted{ color:#718096 }
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .divider{
+      height:2px; border-radius:2px; margin:18px 0;
+      background: linear-gradient(90deg,#ff7aa2,#ffb86b,#ffd166,#9be15d,#64d8ff,#b39ddb);
+      opacity:.7;
+    }
 
-    .box-title{
-      font-weight:800; font-size: 18px; margin:0 0 8px;
-      background: linear-gradient(90deg,var(--rp0),var(--rp2),var(--rp4),var(--rp6));
-      -webkit-background-clip: text; background-clip:text; color:transparent;
+    .kicker{ font-size:.8rem; text-transform:uppercase; letter-spacing:.1em; opacity:.75 }
+    .muted{ opacity:.7 }
+
+    /* Print: make it clean */
+    @media print{
+      body{ animation:none; background:#fff }
+      .btn, .controls, .no-print{ display:none !important }
+      .wrap{ margin:0; max-width:900px }
+      .card{ box-shadow:none; border:0; background:#fff }
     }
   </style>
-
-  <!-- html2canvas + jsPDF for PDF export -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 </head>
 <body>
   <div class="wrap">
-    <header class="card">
-      <h1 class="title">Healing Journey Diary</h1>
-      <div class="row">
-        <button class="btn btn-rainbow" id="addBtn">Add Entry</button>
-        <button class="btn" id="exportBtn" title="Export visible entries as PDF">Export as PDF</button>
-      </div>
-    </header>
+    <!-- Header -->
+    <div class="card section" style="padding:26px">
+      <h1 class="title rainbow-text">Healing Diary</h1>
+      <p class="subtitle">Write, tag, search, export to PDF — and get an AI newsletter-style summary.</p>
+    </div>
 
-    <!-- Add Entry -->
-    <section class="card">
-      <h3 class="box-title">New Entry</h3>
-      <div class="grid">
-        <div class="col-6">
-          <label for="topic">Topic</label>
-          <input id="topic" type="text" placeholder="e.g. Anxiety, Gratitude, Wins" />
-        </div>
-        <div class="col-6">
-          <label for="mood">Mood</label>
-          <select id="mood">
-            <option value="😊 Joyful">😊 Joyful</option>
-            <option value="🙂 Calm">🙂 Calm</option>
-            <option value="😐 Neutral">😐 Neutral</option>
-            <option value="😕 Uneasy">😕 Uneasy</option>
-            <option value="😞 Low">😞 Low</option>
-          </select>
-        </div>
-        <div class="col-12">
-          <label for="text">Entry</label>
-          <textarea id="text" placeholder="Write freely. You can add tags below…"></textarea>
-        </div>
-        <div class="col-12">
-          <label for="tagsInput">Tags (comma or Enter)</label>
-          <input id="tagsInput" type="text" placeholder="e.g. breathing, therapy, progress" />
-          <div class="toolbar" id="tagsBar" style="margin-top:8px"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Filters / Search -->
-    <section class="card">
-      <h3 class="box-title">Search & Filter</h3>
-      <div class="grid">
-        <div class="col-4">
-          <label for="search">Search text</label>
-          <input id="search" type="text" placeholder="Find words in entries…" />
-        </div>
-        <div class="col-4">
-          <label for="filterTopic">Filter by topic</label>
-          <input id="filterTopic" type="text" placeholder="Type a topic name…" />
-        </div>
-        <div class="col-4">
-          <label for="filterTag">Filter by tag</label>
-          <input id="filterTag" type="text" placeholder="Type a tag…" />
-        </div>
-      </div>
-    </section>
-
-    <!-- Summaries -->
-    <section class="card">
-      <h3 class="box-title">Summarize Topics</h3>
-      <div class="grid">
-        <div class="col-12">
-          <label for="topicsMultiInput">Topics to summarize (comma separated, or type <all>)</label>
-          <input id="topicsMultiInput" type="text" placeholder="e.g. Anxiety, Gratitude" />
-        </div>
-        <div class="col-12">
+    <div class="grid" id="page-grid">
+      <!-- Left: Editor -->
+      <div class="card">
+        <div class="section">
+          <h2 class="kicker">New entry</h2>
           <div class="row">
-            <button class="btn btn-rainbow" id="summarizeBtn">Summarize (Newsletter Style)</button>
-            <small class="muted">If API isn’t configured, it will use a built-in summarizer.</small>
+            <input id="topic" class="input" placeholder="Topics (comma-separated, e.g. anxiety, sleep, routine)" />
+          </div>
+          <div style="height:10px"></div>
+          <textarea id="text" class="textarea" placeholder="Write your thoughts here…"></textarea>
+
+          <div style="height:12px"></div>
+          <div class="row">
+            <button class="btn" id="saveBtn">Save entry</button>
+            <button class="btn secondary" id="clearBtn">Clear</button>
+            <button class="btn ghost no-print" id="pdfBtn" title="Export visible content to PDF">Export PDF</button>
           </div>
         </div>
-        <div class="col-12">
-          <div id="summaryOut" class="entry" style="display:none"></div>
+        <div class="divider"></div>
+        <div class="section">
+          <h2 class="kicker">AI summary</h2>
+          <div class="row">
+            <input id="summary-topics" class="input" placeholder="(Optional) Focus the summary on certain topics, e.g. burnout, habits" />
+          </div>
+          <div style="height:10px"></div>
+          <div class="row">
+            <button class="btn" id="summarizeBtn">Summarize last 7 days</button>
+            <span class="muted" id="summary-hint">Requires a serverless endpoint at <code>/api/summarize</code>.</span>
+          </div>
+          <div style="height:12px"></div>
+          <div id="summaryBox" class="entry" style="display:none"></div>
         </div>
       </div>
-    </section>
 
-    <!-- Entries list -->
-    <section class="card" id="entriesCard">
-      <h3 class="box-title">Entries</h3>
-      <div id="entries" class="list"></div>
-      <p id="empty" class="muted" style="margin-top:8px; display:none;">No entries found.</p>
-    </section>
+      <!-- Right: Entries -->
+      <div class="card">
+        <div class="section">
+          <h2 class="kicker">Your entries</h2>
+          <div class="row controls">
+            <input id="search" class="input" placeholder="Search…" />
+            <button id="resetSearch" class="btn secondary">Reset</button>
+          </div>
+          <div style="height:10px"></div>
+          <div id="entries"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Simple storage helpers
-    const load = (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
-    const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    // ---------- State & persistence ----------
+    const $ = (sel) => document.querySelector(sel);
+    const entriesKey = "healing_diary_entries_v3";
 
-    let entries = load('hj_entries', []);
-    let draftTags = [];
-
-    const $ = (id) => document.getElementById(id);
-    const els = {
-      addBtn: $('addBtn'), exportBtn: $('exportBtn'),
-      topic: $('topic'), mood: $('mood'), text: $('text'),
-      tagsInput: $('tagsInput'), tagsBar: $('tagsBar'),
-      search: $('search'), filterTopic: $('filterTopic'), filterTag: $('filterTag'),
-      entries: $('entries'), empty: $('empty'),
-      topicsMultiInput: $('topicsMultiInput'), summarizeBtn: $('summarizeBtn'), summaryOut: $('summaryOut'),
-      entriesCard: $('entriesCard'),
-    };
-
-    // ------- TAGS -------
-    const renderDraftTags = () => {
-      els.tagsBar.innerHTML = '';
-      draftTags.forEach((t, i) => {
-        const chip = document.createElement('span');
-        chip.className = 'chip'; chip.dataset.hue = i % 5;
-        chip.innerHTML = `<span>#${escapeHtml(t)}</span><span class="x" title="Remove tag" data-i="${i}">✕</span>`;
-        els.tagsBar.appendChild(chip);
-      });
-    };
-
-    const addDraftTagsFromInput = () => {
-      const raw = els.tagsInput.value.trim();
-      if (!raw) return;
-      raw.split(',').map(s => s.trim()).filter(Boolean).forEach(v=>{
-        if (!draftTags.includes(v.toLowerCase())) draftTags.push(v.toLowerCase());
-      });
-      els.tagsInput.value = '';
-      renderDraftTags();
-    };
-
-    els.tagsInput.addEventListener('keydown', (e)=>{
-      if (e.key === 'Enter' || e.key === ','){ e.preventDefault(); addDraftTagsFromInput(); }
-      if (e.key === 'Backspace' && !els.tagsInput.value && draftTags.length){ draftTags.pop(); renderDraftTags(); }
-    });
-    els.tagsBar.addEventListener('click', (e)=>{
-      const i = e.target.dataset.i;
-      if (i !== undefined){ draftTags.splice(Number(i),1); renderDraftTags(); }
-    });
-
-    // ------- ADD ENTRY -------
-    els.addBtn.addEventListener('click', ()=>{
-      const topic = els.topic.value.trim() || 'General';
-      const mood = els.mood.value;
-      const text = els.text.value.trim();
-      if (!text){ alert('Please write something in the entry.'); return; }
-      const now = new Date().toISOString();
-      const tags = [...draftTags];
-      entries.unshift({ id: crypto.randomUUID(), topic, mood, text, tags, createdAt: now });
-      save('hj_entries', entries);
-      // clear
-      els.text.value = ''; els.topic.value = ''; draftTags = []; renderDraftTags();
-      refresh();
-    });
-
-    // ------- RENDER LIST -------
-    function refresh(){
-      // filters
-      const q = els.search.value.trim().toLowerCase();
-      const fTopic = els.filterTopic.value.trim().toLowerCase();
-      const fTag = els.filterTag.value.trim().toLowerCase();
-
-      const filtered = entries.filter(e=>{
-        const textHit = !q || (e.text.toLowerCase().includes(q) || e.topic.toLowerCase().includes(q) || e.tags.some(t=>t.includes(q)));
-        const topicHit = !fTopic || e.topic.toLowerCase().includes(fTopic);
-        const tagHit = !fTag || e.tags.some(t => t.includes(fTag));
-        return textHit && topicHit && tagHit;
-      });
-
-      els.entries.innerHTML = filtered.map((e,i)=>renderEntry(e,i)).join('');
-      els.empty.style.display = filtered.length ? 'none' : 'block';
+    function loadEntries(){
+      try { return JSON.parse(localStorage.getItem(entriesKey) || "[]"); }
+      catch { return []; }
+    }
+    function saveEntries(list){
+      localStorage.setItem(entriesKey, JSON.stringify(list));
     }
 
-    function renderEntry(e, index){
-      const date = new Date(e.createdAt).toLocaleString();
-      const tagHtml = e.tags.map((t,i)=>`<span class="chip" data-hue="${i%5}">#${escapeHtml(t)}</span>`).join(' ');
-      return `
-        <article class="entry">
-          <h4 class="section-title" style="margin:0">
-            <span style="background:linear-gradient(90deg,var(--rp${index%7}),var(--rp${(index+2)%7}),var(--rp${(index+4)%7}));
-                         -webkit-background-clip:text;background-clip:text;color:transparent;">
-              ${escapeHtml(e.topic)}
-            </span>
-          </h4>
-          <div class="meta">${escapeHtml(e.mood)} · ${date}</div>
-          <div>${nl2br(escapeHtml(e.text))}</div>
-          <div class="tags">${tagHtml}</div>
-        </article>
-      `;
+    function tagChips(topicsStr){
+      const topics = topicsStr.split(",").map(t=>t.trim()).filter(Boolean);
+      if(!topics.length) return "";
+      return topics.map(t => `<span class="rainbow-chip">${t}</span>`).join(" ");
     }
 
-    ['search','filterTopic','filterTag'].forEach(id=>$(id).addEventListener('input', refresh));
+    function render(){
+      const q = ($("#search").value || "").toLowerCase().trim();
+      const list = loadEntries().sort((a,b)=>b.created-a.created);
+      const filtered = q
+        ? list.filter(e =>
+            e.text.toLowerCase().includes(q) ||
+            (e.topics||"").toLowerCase().includes(q)
+          )
+        : list;
 
-    // ------- SUMMARY (GPT first, fallback to local “newsletter” style) -------
-    els.summarizeBtn.addEventListener('click', async ()=>{
-      const raw = els.topicsMultiInput.value.trim();
-      if (!raw){ alert('Type one or more topics (comma separated), or <all>.'); return; }
-      let chosen = raw.toLowerCase() === 'all'
-        ? [...new Set(entries.map(e=>e.topic))]
-        : raw.split(',').map(s=>s.trim()).filter(Boolean);
+      const html = filtered.map(e => `
+        <div class="entry" style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+              <div class="rainbow-text" style="font-weight:800">${new Date(e.created).toLocaleString()}</div>
+              <div class="muted" style="margin-top:4px">${tagChips(e.topics||"")}</div>
+            </div>
+            <div class="row">
+              <button class="btn secondary" onclick="removeEntry('${e.id}')">Delete</button>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <div style="white-space:pre-wrap">${escapeHtml(e.text)}</div>
+        </div>
+      `).join("");
 
-      const group = entries.filter(e=> chosen.includes(e.topic));
-      if (!group.length){ alert('No entries for those topics.'); return; }
+      $("#entries").innerHTML = html || `<div class="muted">No entries yet — start by writing on the left.</div>`;
+    }
 
-      // Try calling Vercel API
-      let summary;
-      try{
-        const res = await fetch('/api/summarize', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ topics: chosen, entries: group }),
-        });
-        if(!res.ok) throw new Error('API error');
-        const data = await res.json();
-        summary = data.summary;
-      }catch(err){
-        // Fallback — local newsletter-style summarizer
-        summary = newsletterFallback(group);
+    function escapeHtml(s){
+      return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    // ---------- Actions ----------
+    $("#saveBtn").addEventListener("click", () => {
+      const text = $("#text").value.trim();
+      const topics = $("#topic").value.trim();
+      if(!text){
+        $("#text").focus();
+        return;
       }
+      const list = loadEntries();
+      list.push({ id: crypto.randomUUID(), created: Date.now(), text, topics });
+      saveEntries(list);
+      $("#text").value = "";
+      // keep topics (handy if journaling the same theme)
+      render();
+    });
 
-      els.summaryOut.style.display = 'block';
-      els.summaryOut.innerHTML = `
-        <div class="section-title" style="margin-bottom:6px">Newsletter Summary (${escapeHtml(chosen.join(', '))})</div>
-        <div>${nl2br(escapeHtml(summary))}</div>
+    $("#clearBtn").addEventListener("click", () => {
+      $("#text").value = "";
+      $("#text").focus();
+    });
+
+    $("#search").addEventListener("input", render);
+    $("#resetSearch").addEventListener("click", () => { $("#search").value=""; render(); });
+
+    window.removeEntry = (id) => {
+      const list = loadEntries().filter(e => e.id !== id);
+      saveEntries(list);
+      render();
+    };
+
+    // ---------- Summarize (calls your Vercel serverless function) ----------
+    $("#summarizeBtn").addEventListener("click", async () => {
+      const list = loadEntries().sort((a,b)=>b.created-a.created);
+      const sevenDaysAgo = Date.now() - 7*24*60*60*1000;
+      const recent = list.filter(e => e.created >= sevenDaysAgo);
+      if(!recent.length){
+        showSummary("No entries in the last 7 days to summarize.");
+        return;
+      }
+      const focus = $("#summary-topics").value.trim();
+
+      showSummary("Summarizing… this can take a few seconds.");
+      try{
+        const res = await fetch("/api/summarize",{
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({
+            topics: focus,
+            entries: recent.map(e => ({created:e.created, topics:e.topics||"", text:e.text}))
+          })
+        });
+
+        if(!res.ok){
+          const msg = await res.text();
+          showSummary("Server error: " + msg);
+          return;
+        }
+        const data = await res.json();
+        showSummary(data.summary || "No summary returned.");
+      }catch(err){
+        showSummary("Couldn’t reach /api/summarize. Deploy the API route & set OPENAI_API_KEY on Vercel.");
+      }
+    });
+
+    function showSummary(text){
+      const box = $("#summaryBox");
+      box.style.display = "block";
+      box.innerHTML = `
+        <div style="font-weight:800" class="rainbow-text">Weekly Newsletter Draft</div>
+        <div style="height:8px"></div>
+        <div style="white-space:pre-wrap">${escapeHtml(text)}</div>
       `;
-    });
-
-    function newsletterFallback(group){
-      // Merge all text
-      const texts = group.map(e=>e.text).join('\n');
-      const tags = group.flatMap(e=>e.tags);
-      const moods = group.map(e=>e.mood);
-      const moodCount = Object.fromEntries([...new Set(moods)].map(m=>[m, moods.filter(x=>x===m).length]));
-      const topTags = Object.entries(tags.reduce((a,t)=> (a[t]=(a[t]||0)+1, a), {}))
-        .sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>`#${t} (${c})`);
-
-      const sentences = texts.split(/(?<=[.!?])\s+/).filter(Boolean);
-      const pulls = sentences.filter(s=>s.length<140).slice(0,3);
-
-      // Simple key points extract (freq-based)
-      const points = keyPoints(texts, 5);
-
-      return [
-        `Subject ideas:`,
-        `• Weekly Healing Highlights`,
-        `• Progress & Patterns Roundup`,
-        ``,
-        `Intro (2 sentences):`,
-        wrap(`This week’s entries highlight recurring themes across your focus topics. Here’s a quick brief you can paste into a newsletter and share (or keep for yourself).`),
-        ``,
-        `Key wins & bright spots:`,
-        ...points.wins.map(p=>'• '+p),
-        ``,
-        `Challenges & friction:`,
-        ...points.challenges.map(p=>'• '+p),
-        ``,
-        `Suggested next actions (small & specific):`,
-        ...points.actions.map(p=>'• '+p),
-        ``,
-        `Mood trend snapshot: ${Object.entries(moodCount).map(([m,c])=>`${m}×${c}`).join(' · ') || '—'}`,
-        `Top tags: ${topTags.join(' · ') || '—'}`,
-        ``,
-        `Notable lines you could quote:`,
-        ...pulls.map(p=>'“'+p.replace(/\n/g,' ')+'”'),
-      ].join('\n');
     }
 
-    function keyPoints(text, n=5){
-      const sents = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-      const words = text.toLowerCase().match(/[a-z’']+/g) || [];
-      const stop = new Set('i me my myself we our you your yours he she it they them a an the and or but if then so to of in on for with from at by as is are was were be been being feel feels felt feeling today this that those these not very really just have has had do did doing will would can could should may might'.split(' '));
-      const freq = new Map();
-      for (const w of words){ if (!stop.has(w) && w.length>2) freq.set(w, (freq.get(w)||0)+1); }
-      const score = s => (s.toLowerCase().match(/[a-z’']+/g)||[]).reduce((acc,w)=>acc+(freq.get(w)||0),0);
-      const ranked = sents.map(s=>({s,score:score(s)})).sort((a,b)=>b.score-a.score).slice(0, n*2).map(o=>o.s);
-
-      const bucket = (arr,label)=>arr.filter((_,i)=>i%3===label).slice(0,n);
-      return {
-        wins: bucket(ranked,0),
-        challenges: bucket(ranked,1),
-        actions: bucket(ranked,2).map(s=>s.replace(/^/,'Try: ')),
-      };
-    }
-
-    // ------- PDF EXPORT -------
-    $('exportBtn').addEventListener('click', async ()=>{
-      await exportElementToPDF(els.entriesCard, 'Healing-Diary.pdf');
-    });
-
-    async function exportElementToPDF(node, filename){
+    // ---------- Export to PDF (captures main grid) ----------
+    $("#pdfBtn").addEventListener("click", async () => {
+      const node = document.getElementById("page-grid");
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff" });
+      const img = canvas.toDataURL("image/png");
       const { jsPDF } = window.jspdf;
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
-      const img = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p','pt','a4');
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-      const w = canvas.width * ratio, h = canvas.height * ratio;
-      pdf.addImage(img, 'PNG', (pageW - w)/2, 24, w, h);
-      pdf.save(filename);
-    }
+      const pdf = new jsPDF({ unit:"pt", format:"a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // ------- UTIL -------
-    function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-    function nl2br(s){ return s.replace(/\n/g,'<br>'); }
+      const imgWidth = pageWidth - 60; // margins
+      const imgHeight = canvas.height * (imgWidth/canvas.width);
 
-    // ------- INIT -------
-    function init(){ renderDraftTags(); refresh(); }
-    init();
+      let y = 40;
+      if(imgHeight <= pageHeight - 80){
+        pdf.addImage(img, "PNG", 30, y, imgWidth, imgHeight, "", "FAST");
+      }else{
+        // split across pages
+        let sHeight = imgHeight;
+        let sY = 0;
+        const onePageHeight = pageHeight - 80;
+        while(sHeight > 0){
+          pdf.addImage(img, "PNG", 30, 40 - sY, imgWidth, imgHeight, "", "FAST");
+          sHeight -= onePageHeight;
+          sY += onePageHeight;
+          if(sHeight > 0) pdf.addPage();
+        }
+      }
+      pdf.save(`healing-diary-${new Date().toISOString().slice(0,10)}.pdf`);
+    });
+
+    // First render
+    render();
   </script>
 </body>
 </html>
