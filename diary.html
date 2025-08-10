@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Healing Diary – Pastel Rainbow</title>
+
+    <!-- Tailwind (CDN) + runtime config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        safelist: [
+          'bg-pastel-pink','bg-pastel-peach','bg-pastel-yellow','bg-pastel-mint','bg-pastel-aqua','bg-pastel-lilac','bg-pastel-sky',
+          'bg-slate-800','text-white','bg-white/90' // toggled classes
+        ],
+        theme: {
+          extend: {
+            colors: {
+              pastel: {
+                pink: '#FAD1E6',
+                peach: '#FFD8C2',
+                yellow: '#FFF2B2',
+                mint: '#CFF7E3',
+                aqua: '#CFEFFF',
+                lilac: '#E6D9FF',
+                sky: '#D7F0FF',
+                slate: '#55606E',
+              }
+            },
+            boxShadow: {
+              soft: '0 10px 30px rgba(0,0,0,0.06)'
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- Preact (no Babel) + htm -->
+    <script src="https://unpkg.com/preact@10.20.2/dist/preact.umd.js" crossorigin></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js" crossorigin></script>
+
+    <style>
+      :root{ --ring: 0 0 0 3px rgba(85,96,110,0.2); }
+      .glass { backdrop-filter: blur(8px); background: rgba(255,255,255,0.7); }
+      .rainbow-border { position: relative; }
+      .rainbow-border::before {
+        content: ""; position: absolute; inset: -2px; z-index: -1; border-radius: 18px;
+        background: linear-gradient(90deg, #FAD1E6, #FFD8C2, #FFF2B2, #CFF7E3, #CFEFFF, #E6D9FF);
+        filter: saturate(110%);
+      }
+      .ring-soft:focus { outline: none; box-shadow: var(--ring); }
+      .chip { border-radius: 9999px; padding: 2px 10px; font-size: 12px; }
+      /* line-clamp-4 (plugin-less) */
+      .line-clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gradient-to-br from-pastel-pink via-pastel-mint to-pastel-lilac">
+    <div id="root"></div>
+
+    <script>
+      const { h, render } = preact;
+      const { useEffect, useMemo, useRef, useState } = preactHooks = preact.hooks;
+      const html = htm.bind(h);
+
+      // ------------------ Constants & helpers ------------------
+      const CHAPTER_TYPES = [
+        'Personal Experience', 'Trauma Narrative', 'Therapy Session Notes', 'Technique / Skill',
+        'Real-Life Learnings', 'AI & Tools', 'Psychology / Psychiatry', 'Jungian (Dreams / Shadow)',
+        'Freudian (Psychoanalysis)', 'Relationships & Attachment', 'Work & Leadership', 'Fitness & Body'
+      ];
+
+      const STORAGE_KEY = 'healing-diary-entries-v2-pastel';
+      const SETTINGS_KEY = 'healing-diary-settings-v2-pastel';
+
+      const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const todayStr = () => new Date().toISOString().slice(0,10);
+
+      const TEMPLATES = {
+        'Personal Experience': `Prompt: What happened? Who was there? What did I feel in my body?
+Moments:
+- 
+- 
+What did I need?
+Boundary held or missed?`,
+        'Trauma Narrative': `Trigger:
+Body sensations:
+Meaning my mind made:
+What I did:
+What I wish I did:
+Self-compassion note:`,
+        'Therapy Session Notes': `Therapist:
+Modality (EMDR/DBT/IFS):
+Goals:
+Key insights:
+Homework:`,
+        'Technique / Skill': `Name:
+When to use:
+Steps:
+Practice plan:
+What gets in the way:`,
+        'Real-Life Learnings': `Situation:
+What worked:
+What didn’t:
+Rule of thumb:`,
+        'AI & Tools': `Tool / Prompt idea:
+Use-case:
+Steps:
+Notes/caveats:`,
+        'Psychology / Psychiatry': `Concept:
+How it shows up in me:
+What helps:
+Questions for psych:`,
+        'Jungian (Dreams / Shadow)': `Symbols:
+Archetypes present:
+Shadow message:
+Active imagination:`,
+        'Freudian (Psychoanalysis)': `Drive/defence observed:
+Transference/counter-transference:
+Insight:
+Action:`,
+        'Relationships & Attachment': `Attachment pattern:
+Protest behaviours:
+Repair attempt:
+Boundary/request:`,
+        'Work & Leadership': `Scenario:
+Stakeholders:
+Tough call:
+Lesson:`,
+        'Fitness & Body': `Training:
+Nutrition:
+Mood & energy:
+Small win:`,
+      };
+
+      const loadEntries = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } };
+      const saveEntries = (x) => localStorage.setItem(STORAGE_KEY, JSON.stringify(x));
+      const loadSettings = () => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { view:'cards' }; } catch { return { view:'cards' }; } };
+      const saveSettings = (x) => localStorage.setItem(SETTINGS_KEY, JSON.stringify(x));
+
+      const toMarkdown = (entries) => {
+        const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+        const lines = ['# Healing Journey – Diary Export', '', `Exported: ${new Date().toLocaleString()}`, ''];
+        sorted.forEach(e => {
+          lines.push(`## ${e.title || 'Untitled'} (${e.date})`);
+          lines.push(`*Chapter Type:* ${e.chapterType}`);
+          if (e.tags?.length) lines.push(`*Tags:* ${e.tags.join(', ')}`);
+          lines.push('');
+          const sec = e.sections || {};
+          const add = (h, v) => { if (v) { lines.push(`### ${h}`); lines.push(v); lines.push(''); } };
+          add('Narrative', sec.narrative);
+          add('Therapy Session / Notes', sec.therapy);
+          add('Technique / Skill', sec.technique);
+          add('Real-Life Learnings', sec.learnings);
+          add('AI & Tools', sec.ai);
+          add('Psychology / Psychiatry', sec.psych);
+          add('Jungian: Dreams / Shadow / Archetypes', sec.jung);
+          add('Freudian: Drives / Defences', sec.freud);
+          add('Quotes / Key Phrases', sec.quotes);
+          lines.push('---
+');
+        });
+        return lines.join('
+');
+      };
+
+      const downloadFile = (filename, text) => {
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      };
+
+      // ------------------ Components ------------------
+      function App(){
+        const [entries, setEntries] = useState(loadEntries());
+        const [settings, setSettings] = useState(loadSettings());
+        const [editing, setEditing] = useState(null);
+
+        useEffect(() => saveEntries(entries), [entries]);
+        useEffect(() => saveSettings(settings), [settings]);
+
+        const startNew = () => setEditing({
+          id: uid(), date: todayStr(), title: '', chapterType: 'Personal Experience', tags: [], rating: 5,
+          sections: { narrative:'', therapy:'', technique:'', learnings:'', ai:'', psych:'', jung:'', freud:'', quotes:'' }
+        });
+        const saveCurrent = () => {
+          if(!editing) return;
+          setEntries(prev => {
+            const i = prev.findIndex(x => x.id === editing.id);
+            if(i === -1) return [editing, ...prev];
+            const copy = [...prev]; copy[i] = editing; return copy;
+          });
+          setEditing(null);
+        };
+        const del = id => { if(confirm('Delete this entry?')) { setEntries(prev => prev.filter(e => e.id !== id)); if(editing?.id===id) setEditing(null);} };
+        const dup = id => { const src = entries.find(e => e.id===id); if(!src) return; const copy = { ...src, id: uid(), date: todayStr(), title: (src.title||'Untitled') + ' (copy)' }; setEntries(prev => [copy, ...prev]); };
+
+        // filters
+        const [q, setQ] = useState('');
+        const [type, setType] = useState('All');
+        const [tag, setTag] = useState('');
+        const [from, setFrom] = useState('');
+        const [to, setTo] = useState('');
+
+        const filtered = useMemo(() => entries.filter(e => {
+          if(type !== 'All' && e.chapterType !== type) return false;
+          if(tag && !(e.tags||[]).some(t => t.toLowerCase().includes(tag.toLowerCase()))) return false;
+          if(from && e.date < from) return false;
+          if(to && e.date > to) return false;
+          if(q){
+            const hay = `${e.title} ${e.chapterType} ${(e.tags||[]).join(' ')} ${Object.values(e.sections||{}).join(' ')}`.toLowerCase();
+            if(!hay.includes(q.toLowerCase())) return false;
+          }
+          return true;
+        }), [entries, q, type, tag, from, to]);
+
+        const allTags = useMemo(() => Array.from(new Set(entries.flatMap(e => e.tags||[]))).sort(), [entries]);
+
+        // export / import
+        const fileRef = useRef();
+        const exportJSON = () => downloadFile('healing-diary.json', JSON.stringify(entries, null, 2));
+        const exportMD = () => downloadFile('healing-diary.md', toMarkdown(filtered));
+        const onImport = ev => {
+          const f = ev.target.files?.[0]; if(!f) return;
+          const reader = new FileReader();
+          reader.onload = () => { try { const data = JSON.parse(String(reader.result)); if(!Array.isArray(data)) throw new Error('Invalid format'); setEntries(data.map(d => ({...d, id: d.id || uid()}))); alert('Imported'); } catch(e){ alert('Import failed: '+ e.message); } };
+          reader.readAsText(f);
+        };
+
+        return html`
+          <div class="min-h-screen">
+            ${Header({ startNew, exportJSON, exportMD, fileRef, onImport })}
+
+            <section class="max-w-6xl mx-auto px-4 pt-4 pb-2">
+              <div class="grid md:grid-cols-5 gap-3">
+                <input value=${q} onInput=${e=>setQ(e.target.value)} placeholder="Search text across entries" class="md:col-span-2 px-3 py-2 rounded-xl border border-white bg-white/90 ring-soft"/>
+                <select value=${type} onInput=${e=>setType(e.target.value)} class="px-3 py-2 rounded-xl border border-white bg-white/90">
+                  ${['All', ...CHAPTER_TYPES].map(t=> html`<option key=${t}>${t}</option>`)}
+                </select>
+                <input list="all-tags" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="Filter by tag" class="px-3 py-2 rounded-xl border border-white bg-white/90"/>
+                <datalist id="all-tags">${allTags.map(t=> html`<option key=${t} value=${t}/>` )}</datalist>
+                <div class="flex items-center gap-2 md:col-span-5">
+                  <input type="date" value=${from} onInput=${e=>setFrom(e.target.value)} class="px-3 py-2 rounded-xl border border-white bg-white/90"/>
+                  <span class="text-slate-600 text-sm">to</span>
+                  <input type="date" value=${to} onInput=${e=>setTo(e.target.value)} class="px-3 py-2 rounded-xl border border-white bg-white/90"/>
+                  <div class="ml-auto flex items-center gap-2 text-sm">
+                    <button class=${`px-3 py-1 rounded-full border rainbow-border ${settings.view==='cards'?'bg-slate-800 text-white':'bg-white/90'}`} onClick=${()=>setSettings(s=>({...s, view:'cards'}))}>Cards</button>
+                    <button class=${`px-3 py-1 rounded-full border rainbow-border ${settings.view==='table'?'bg-slate-800 text-white':'bg-white/90'}`} onClick=${()=>setSettings(s=>({...s, view:'table'}))}>Table</button>
+                    <div class="text-slate-700">${filtered.length} entries</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <main class="max-w-6xl mx-auto px-4 pb-24">
+              ${settings.view==='cards'
+                ? html`<div class="grid md:grid-cols-2 gap-4">${filtered.map(e=> html`<${EntryCard} key=${e.id} entry=${e} onEdit=${()=>setEditing(e)} onDelete=${()=>del(e.id)} onDuplicate=${()=>dup(e.id)} />`)}</div>`
+                : html`<${TableView} entries=${filtered} onEdit=${setEditing} onDelete=${del} onDuplicate=${dup} />`
+              }
+            </main>
+
+            ${editing && html`<${Editor} value=${editing} onChange=${setEditing} onSave=${saveCurrent} onClose=${()=>setEditing(null)} />`}
+
+            <footer class="fixed bottom-0 inset-x-0 glass border-t border-white/60 px-4 py-2 text-center text-xs text-slate-700">
+              Tip: Use tags like "Gaslighting", "CPTSD", "DBT", "Jung", "Freud", "NoPixel", "Work", "Fitness". Export filtered results to Markdown for chapter drafts.
+            </footer>
+          </div>
+        `;
+      }
+
+      function Header({ startNew, exportJSON, exportMD, fileRef, onImport }){
+        return html`
+          <header class="sticky top-0 z-10 glass border-b border-white/60">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-pastel-peach via-pastel-yellow to-pastel-aqua grid place-items-center text-slate-700 font-bold shadow-soft">HJ</div>
+                <div>
+                  <h1 class="text-xl font-semibold text-slate-800">Healing Diary</h1>
+                  <p class="text-xs text-slate-600">Pastel rainbow edition · Write • Search • Export</p>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button class="px-3 py-2 rounded-xl bg-slate-800 text-white shadow-soft hover:opacity-95" onClick=${startNew}>New Entry</button>
+                <button class="px-3 py-2 rounded-xl bg-white/90 hover:bg-white border border-white" onClick=${exportJSON}>Export JSON</button>
+                <button class="px-3 py-2 rounded-xl bg-white/90 hover:bg-white border border-white" onClick=${exportMD}>Export Markdown (filtered)</button>
+                <input ref=${el=>fileRef.current = el} type="file" accept="application/json" class="hidden" onChange=${onImport} />
+                <button class="px-3 py-2 rounded-xl bg-white/90 hover:bg-white border border-white" onClick=${()=>fileRef.current?.click()}>Import JSON</button>
+              </div>
+            </div>
+          </header>
+        `;
+      }
+
+      function EntryCard({ entry, onEdit, onDelete, onDuplicate }){
+        const tagBgClasses = ['bg-pastel-pink','bg-pastel-peach','bg-pastel-yellow','bg-pastel-mint','bg-pastel-aqua','bg-pastel-lilac','bg-pastel-sky'];
+        return html`
+          <div class="relative rounded-2xl p-4 bg-white/90 rainbow-border shadow-soft">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs text-slate-600">${entry.date}</div>
+                <h3 class="text-lg font-semibold mt-1 text-slate-800">${entry.title || 'Untitled'}</h3>
+                <div class="mt-1 text-sm text-slate-700">${entry.chapterType}</div>
+              </div>
+              <div class="flex gap-2">
+                <button class="px-3 py-1 rounded-xl bg-slate-800 text-white text-sm" onClick=${onEdit}>Edit</button>
+                <button class="px-3 py-1 rounded-xl bg-pastel-mint text-slate-800 text-sm" onClick=${onDuplicate}>Duplicate</button>
+                <button class="px-3 py-1 rounded-xl bg-pastel-pink text-slate-800 text-sm" onClick=${onDelete}>Delete</button>
+              </div>
+            </div>
+            ${entry.tags?.length ? html`
+              <div class="mt-2 flex flex-wrap gap-1">
+                ${entry.tags.map((t,i)=> html`<span key=${t} class=${`chip ${tagBgClasses[i % tagBgClasses.length]} text-slate-800 border border-white/60`}>${t}</span>`)}
+              </div>
+            ` : null}
+            ${entry.sections?.quotes ? html`
+              <blockquote class="mt-3 text-sm italic text-slate-700 border-l-4 border-pastel-lilac pl-3">${entry.sections.quotes}</blockquote>
+            ` : null}
+            ${entry.sections?.narrative ? html`
+              <p class="mt-3 text-sm whitespace-pre-wrap text-slate-800 line-clamp-4">${entry.sections.narrative}</p>
+            ` : null}
+          </div>
+        `;
+      }
+
+      function TableView({ entries, onEdit, onDelete, onDuplicate }){
+        return html`
+          <div class="overflow-auto rounded-2xl bg-white/90 rainbow-border">
+            <table class="min-w-full text-sm">
+              <thead class="bg-pastel-aqua/60">
+                <tr class="text-left text-slate-800">
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Title</th>
+                  <th class="p-3">Type</th>
+                  <th class="p-3">Tags</th>
+                  <th class="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${entries.map(e => html`
+                  <tr key=${e.id} class="border-t border-white/70">
+                    <td class="p-3 whitespace-nowrap text-slate-700">${e.date}</td>
+                    <td class="p-3 text-slate-800">${e.title}</td>
+                    <td class="p-3 whitespace-nowrap text-slate-700">${e.chapterType}</td>
+                    <td class="p-3 text-slate-700">${(e.tags||[]).join(', ')}</td>
+                    <td class="p-3 whitespace-nowrap">
+                      <button class="px-2 py-1 rounded bg-slate-800 text-white" onClick=${()=>onEdit(e)}>Edit</button>
+                      <button class="ml-2 px-2 py-1 rounded bg-pastel-mint text-slate-800" onClick=${()=>onDuplicate(e.id)}>Duplicate</button>
+                      <button class="ml-2 px-2 py-1 rounded bg-pastel-pink text-slate-800" onClick=${()=>onDelete(e.id)}>Delete</button>
+                    </td>
+                  </tr>
+                `)}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function Editor({ value, onChange, onSave, onClose }){
+        const e = value;
+        const [tagInput, setTagInput] = useState('');
+        const addTag = () => { const t = tagInput.trim(); if(!t) return; onChange({ ...e, tags: Array.from(new Set([...(e.tags||[]), t])) }); setTagInput(''); };
+        const removeTag = (t) => onChange({ ...e, tags: (e.tags||[]).filter(x=>x!==t) });
+        const applyTemplate = (type) => {
+          const tmpl = TEMPLATES[type]; if(!tmpl) return;
+          const patched = { ...e, chapterType: type, sections: { ...e.sections } };
+          patched.sections.narrative = (patched.sections.narrative ? patched.sections.narrative + '
+
+' : '') + tmpl;
+          onChange(patched);
+        };
+        const Section = ({ title, value, onChange, placeholder }) => {
+          const [open, setOpen] = useState(true);
+          return html`
+            <div class="rounded-2xl overflow-hidden bg-white/90 rainbow-border">
+              <div class="flex items-center justify-between px-4 py-2 bg-pastel-sky/60">
+                <h3 class="font-medium text-slate-800">${title}</h3>
+                <button class="text-sm text-slate-700" onClick=${()=>setOpen(o=>!o)}>${open? 'Collapse':'Expand'}</button>
+              </div>
+              ${open && html`<textarea value=${value} onInput=${ev=>onChange(ev.target.value)} placeholder=${placeholder} class="w-full min-h-[140px] p-3 outline-none"></textarea>`}
+            </div>
+          `;
+        };
+        return html`
+          <div class="fixed inset-0 z-20 bg-black/40" onClick=${onClose}>
+            <div class="absolute right-0 top-0 h-full w-full max-w-3xl bg-gradient-to-b from-white/95 to-pastel-lilac/30 shadow-2xl" onClick=${ev=>ev.stopPropagation()}>
+              <div class="p-4 border-b border-white/70 flex items-center justify-between bg-pastel-aqua/50">
+                <div>
+                  <div class="text-xs text-slate-600">${e.id.slice(-6)}</div>
+                  <h2 class="text-lg font-semibold text-slate-800">Edit Entry</h2>
+                </div>
+                <div class="flex gap-2">
+                  <button class="px-3 py-2 rounded-xl bg-white/90" onClick=${onClose}>Close</button>
+                  <button class="px-3 py-2 rounded-xl bg-slate-800 text-white" onClick=${onSave}>Save</button>
+                </div>
+              </div>
+              <div class="p-4 space-y-4 overflow-y-auto h-[calc(100%-64px)]">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs text-slate-700">Date</label>
+                    <input type="date" value=${e.date} onInput=${ev=>onChange({ ...e, date: ev.target.value })} class="w-full px-3 py-2 rounded-xl border border-white bg-white/90" />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-700">Chapter Type</label>
+                    <select value=${e.chapterType} onInput=${ev=>onChange({ ...e, chapterType: ev.target.value })} class="w-full px-3 py-2 rounded-xl border border-white bg-white/90">
+                      ${CHAPTER_TYPES.map(t=> html`<option key=${t}>${t}</option>`)}
+                    </select>
+                  </div>
+                  <div class="col-span-2">
+                    <label class="block text-xs text-slate-700">Title</label>
+                    <input value=${e.title} onInput=${ev=>onChange({ ...e, title: ev.target.value })} placeholder="Give this a punchy title" class="w-full px-3 py-2 rounded-xl border border-white bg-white/90" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs text-slate-700">Tags</label>
+                  <div class="flex gap-2">
+                    <input value=${tagInput} onInput=${ev=>setTagInput(ev.target.value)} placeholder="Add tag and press +" class="px-3 py-2 rounded-xl border border-white bg-white/90 w-full" />
+                    <button class="px-3 py-2 rounded-xl bg-slate-800 text-white" onClick=${addTag}>+</button>
+                  </div>
+                  ${e.tags?.length ? html`
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      ${(e.tags||[]).map(t => html`<span key=${t} class="chip bg-pastel-peach text-slate-800 border border-white/60">${t}
+                        <button class="ml-2 text-slate-600" onClick=${()=>removeTag(t)}>×</button>
+                      </span>`)}
+                    </div>
+                  ` : null}
+                </div>
+
+                <div class="rounded-2xl border border-white/70 p-3 bg-white/80">
+                  <div class="text-sm font-medium text-slate-800">Quick template</div>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    ${CHAPTER_TYPES.map(t => html`<button key=${t} class="px-3 py-1 rounded-full bg-white/90 border hover:bg-pastel-sky/60" onClick=${()=>applyTemplate(t)}>${t}</button>`)}
+                  </div>
+                  <p class="mt-2 text-xs text-slate-700">Click a template to insert prompts into the Narrative. Adjust freely.</p>
+                </div>
+
+                ${Section({ title:"Narrative", value:e.sections.narrative, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, narrative:v } }), placeholder:"Raw story. What happened, what you felt, what meaning you made." })}
+                ${Section({ title:"Therapy Session / Notes", value:e.sections.therapy, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, therapy:v } }), placeholder:"Therapist, modality, goals, insights, homework." })}
+                ${Section({ title:"Technique / Skill", value:e.sections.technique, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, technique:v } }), placeholder:"Name, when to use, steps, practice plan." })}
+                ${Section({ title:"Real-Life Learnings", value:e.sections.learnings, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, learnings:v } }), placeholder:"What worked, what didn’t, rule of thumb." })}
+                ${Section({ title:"AI & Tools", value:e.sections.ai, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, ai:v } }), placeholder:"Prompts, tools, use-cases, limitations." })}
+                ${Section({ title:"Psychology / Psychiatry", value:e.sections.psych, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, psych:v } }), placeholder:"Concepts, differential thoughts, questions for psych." })}
+                ${Section({ title:"Jungian: Dreams / Shadow / Archetypes", value:e.sections.jung, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, jung:v } }), placeholder:"Symbols, archetypes, shadow message, active imagination." })}
+                ${Section({ title:"Freudian: Drives / Defences", value:e.sections.freud, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, freud:v } }), placeholder:"Drives, defence mechanisms, insight, action." })}
+                ${Section({ title:"Quotes / Key Phrases", value:e.sections.quotes, onChange:(v)=>onChange({ ...e, sections:{ ...e.sections, quotes:v } }), placeholder:"Lines you might open a chapter with." })}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      render(h(App, {}), document.getElementById('root'));
+    </script>
+  </body>
+</html>
