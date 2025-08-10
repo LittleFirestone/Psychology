@@ -58,8 +58,8 @@
     <div id="root"></div>
 
     <script>
-      const { h, render } = preact;
-      const { useEffect, useMemo, useRef, useState } = preactHooks = preact.hooks;
+      const { h, render, hooks } = preact;
+      const { useEffect, useMemo, useRef, useState } = hooks;
       const html = htm.bind(h);
 
       // ------------------ Constants & helpers ------------------
@@ -146,6 +146,22 @@ Small win:`,
           if (e.tags?.length) lines.push(`*Tags:* ${e.tags.join(', ')}`);
           lines.push('');
           const sec = e.sections || {};
+          const add = (h, v) => { if (v) { lines.push(`### ${h}`); lines.push(v); lines.push(''); } };
+          add('Narrative', sec.narrative);
+          add('Therapy Session / Notes', sec.therapy);
+          add('Technique / Skill', sec.technique);
+          add('Real-Life Learnings', sec.learnings);
+          add('AI & Tools', sec.ai);
+          add('Psychology / Psychiatry', sec.psych);
+          add('Jungian: Dreams / Shadow / Archetypes', sec.jung);
+          add('Freudian: Drives / Defences', sec.freud);
+          add('Quotes / Key Phrases', sec.quotes);
+          lines.push('---
+');
+        });
+        return lines.join('
+');
+      };
           const add = (h, v) => { if (v) { lines.push(`### ${h}`); lines.push(v); lines.push(''); } };
           add('Narrative', sec.narrative);
           add('Therapy Session / Notes', sec.therapy);
@@ -363,6 +379,11 @@ Small win:`,
         const applyTemplate = (type) => {
           const tmpl = TEMPLATES[type]; if(!tmpl) return;
           const patched = { ...e, chapterType: type, sections: { ...e.sections } };
+          patched.sections.narrative = (patched.sections.narrative ? patched.sections.narrative + '
+
+' : '') + tmpl;
+          onChange(patched);
+        };
           patched.sections.narrative = (patched.sections.narrative ? patched.sections.narrative + '
 
 ' : '') + tmpl;
