@@ -1,341 +1,386 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Healing Journey Diary</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Healing Journey Diary</title>
+  <style>
+    :root{
+      --bg1:#fde1e7; --bg2:#e7f6ff; --bg3:#eaf8f2; --bg4:#f7ecff;
+      --ink:#354052; --ink-soft:#556070; --panel:#ffffff;
+      --ring: 0 0 0 3px rgba(255,255,255,.7), 0 10px 30px rgba(43,45,66,.08);
 
-<!-- jsPDF for PDF export -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+      /* Rainbow stops (pastel) */
+      --rp0:#ffadd6; --rp1:#ffc7a8; --rp2:#ffe8a6; --rp3:#bff4c6;
+      --rp4:#a9ecff; --rp5:#c8c7ff; --rp6:#f6bfff;
 
-<style>
-  :root{
-    --p1:#ffd6e0; --p2:#d9f1ff; --p3:#e7d9ff; --p4:#fff7cc; --ink:#333;
-    --card:rgba(255,255,255,0.85);
-    --chip:#f1e6ff; --chipText:#6a1b9a;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
-    color:var(--ink);
-    background: linear-gradient(120deg,var(--p1),var(--p2),var(--p3),var(--p4));
-    background-size: 800% 800%;
-    animation: pastelMove 16s ease infinite;
-  }
-  @keyframes pastelMove{
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
-  }
+      /* chip bg transparencies */
+      --chipA: .28; --chipB: .65;
+    }
 
-  .wrap{max-width:1100px; margin:auto; padding:24px; }
-  h1{margin:0 0 12px; text-align:center; font-size:2rem}
-  .sub{opacity:.75; text-align:center; margin:0 0 22px; font-size:.95rem}
+    /* Animated pastel background */
+    body{
+      margin:0; color:var(--ink); font:16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(115deg,var(--bg1),var(--bg2),var(--bg3),var(--bg4));
+      background-size: 200% 200%;
+      animation: floatBg 18s ease-in-out infinite;
+    }
+    @keyframes floatBg{ 0%{background-position:0 0} 50%{background-position:100% 100%} 100%{background-position:0 0} }
 
-  .card{
-    position:relative;
-    border-radius:16px;
-    padding:16px;
-    background:var(--card);
-    backdrop-filter:saturate(140%) blur(6px);
-    box-shadow:0 10px 24px rgba(0,0,0,.15);
-    overflow:hidden;
-  }
-  /* rainbow border */
-  .card::before{
-    content:"";
-    position:absolute; inset:-2px;
-    border-radius:18px;
-    padding:2px;
-    background:conic-gradient(from 120deg, #ffb3c7, #b3e5ff, #cbb2ff, #fff0a8, #ffb3c7);
-    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor; mask-composite:exclude;
-    pointer-events:none;
-  }
+    .wrap{ max-width: 1100px; margin: 40px auto 80px; padding: 24px; }
+    .card{
+      background: var(--panel);
+      border-radius: 22px;
+      box-shadow: var(--ring);
+      padding: 20px;
+      backdrop-filter: blur(6px);
+    }
 
-  .grid{display:grid; gap:16px}
-  @media(min-width:900px){ .grid{grid-template-columns: 1.1fr .9fr} }
+    /* Rainbow headline */
+    .title{
+      font-size: clamp(28px,3vw,40px);
+      font-weight: 800;
+      letter-spacing:.3px;
+      margin: 0 0 18px;
+      line-height:1.1;
+      background: linear-gradient(90deg,
+        var(--rp0),var(--rp1),var(--rp2),var(--rp3),var(--rp4),var(--rp5),var(--rp6));
+      background-size: 200% auto;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: sweep 8s linear infinite;
+    }
+    @keyframes sweep{ 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
 
-  input,textarea,select,button{
-    width:100%; padding:10px 12px; border-radius:10px;
-    border:1px solid #e1e1e1; font-size:1rem; background:#fff;
-  }
-  textarea{min-height:120px; resize:vertical}
-  .row{display:grid; gap:12px}
-  @media(min-width:700px){ .row{grid-template-columns:1fr 1fr} }
+    /* Controls layout */
+    .grid{ display:grid; gap:14px; grid-template-columns: repeat(12,1fr); }
+    .col-12{ grid-column: span 12; } .col-6{ grid-column: span 6; } .col-4{ grid-column: span 4; }
+    @media (max-width:900px){ .col-6,.col-4{ grid-column: span 12; } }
 
-  .actions{display:flex; gap:10px; flex-wrap:wrap}
-  .btn{
-    background:#a7c7e7; border:none; cursor:pointer; font-weight:600;
-  }
-  .btn:hover{background:#90b4d5}
-  .btn.secondary{background:#e7d9ff}
-  .btn.warn{background:#ffd6d6}
-  .hint{font-size:.85rem; opacity:.75}
+    label{ font-size:13px; font-weight:700; color:#5b6474; display:block; margin: 6px 0 6px; }
+    input[type="text"], textarea, select{
+      width:100%; border:1px solid #e7e9ee; background:#fff; color:var(--ink);
+      border-radius: 14px; padding: 12px 14px; outline:none;
+      box-shadow: inset 0 1px 0 rgba(0,0,0,.02);
+    }
+    textarea{ resize: vertical; min-height: 120px; }
 
-  .entry{background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; margin:10px 0}
-  .entry .top{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
-  .chips{display:flex; gap:6px; flex-wrap:wrap}
-  .chip{background:var(--chip); color:var(--chipText); padding:4px 8px; border-radius:999px; font-size:.85rem}
+    .btn{
+      border:0; padding: 12px 16px; border-radius: 14px; font-weight: 700; cursor: pointer;
+      transition: transform .05s ease, filter .2s ease;
+    }
+    .btn:active{ transform: translateY(1px) }
 
-  .filters{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
-  .filter-item{display:flex; align-items:center; gap:6px; background:#ffffffaa; padding:6px 8px; border-radius:10px; border:1px solid #eee}
-  .muted{opacity:.7}
+    .btn-rainbow{
+      color:#26303f; background: linear-gradient(90deg,
+        color-mix(in oklab, var(--rp0) 65%, white 35%),
+        color-mix(in oklab, var(--rp2) 65%, white 35%),
+        color-mix(in oklab, var(--rp4) 65%, white 35%),
+        color-mix(in oklab, var(--rp6) 65%, white 35%)
+      );
+      box-shadow: 0 8px 20px rgba(180,170,255,.25);
+    }
 
-  .summary{
-    white-space:pre-wrap; border:1px dashed #ccc; border-radius:12px; padding:12px; background:#fff; margin-top:10px
-  }
+    .toolbar{ display:flex; gap:10px; flex-wrap: wrap; align-items:center }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px;
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--rp0) var(--chipA), #fff 1%),
+        color-mix(in srgb, var(--rp2) var(--chipA), #fff 1%));
+      border: 1px solid color-mix(in srgb, var(--rp0) 30%, #fff);
+      box-shadow: 0 3px 10px rgba(0,0,0,.06);
+    }
+    .chip .x{ cursor:pointer; font-weight:900; padding:0 4px; opacity:.65 }
+    .chip .x:hover{ opacity:1 }
 
-  .no-data{padding:12px; text-align:center; opacity:.7}
-</style>
+    /* Make chips cycle through rainbow hues */
+    .chip[data-hue="0"]{ background: linear-gradient(135deg, rgba(255,173,214,.28), rgba(255,231,166,.28)); border-color: rgba(255,173,214,.5); }
+    .chip[data-hue="1"]{ background: linear-gradient(135deg, rgba(255,199,168,.28), rgba(191,244,198,.28)); border-color: rgba(255,199,168,.5); }
+    .chip[data-hue="2"]{ background: linear-gradient(135deg, rgba(255,232,166,.28), rgba(169,236,255,.28)); border-color: rgba(255,232,166,.5); }
+    .chip[data-hue="3"]{ background: linear-gradient(135deg, rgba(191,244,198,.28), rgba(200,199,255,.28)); border-color: rgba(191,244,198,.5); }
+    .chip[data-hue="4"]{ background: linear-gradient(135deg, rgba(169,236,255,.28), rgba(246,191,255,.28)); border-color: rgba(169,236,255,.5); }
+
+    .section-title{
+      font-weight:900; margin: 4px 0 10px;
+      background: linear-gradient(90deg,var(--rp1),var(--rp3),var(--rp5));
+      -webkit-background-clip: text; background-clip:text; color:transparent;
+    }
+
+    .entry{
+      border:1px solid #eef0f6; border-radius:18px; padding:14px 14px 12px;
+      background: #fff; box-shadow: 0 6px 16px rgba(20,24,40,.05);
+    }
+    .entry h4{ margin: 0 0 8px; font-size:16px }
+    .entry .meta{ font-size:12px; color:#6a7280; margin-bottom:8px }
+    .entry .tags{ display:flex; gap:8px; flex-wrap: wrap; margin-top:8px }
+
+    .list{ display:grid; gap:12px; }
+    .muted{ color:#718096 }
+
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+
+    .box-title{
+      font-weight:800; font-size: 18px; margin:0 0 8px;
+      background: linear-gradient(90deg,var(--rp0),var(--rp2),var(--rp4),var(--rp6));
+      -webkit-background-clip: text; background-clip:text; color:transparent;
+    }
+  </style>
+
+  <!-- html2canvas + jsPDF for PDF export -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 </head>
 <body>
   <div class="wrap">
-
-    <h1>Healing Journey Diary</h1>
-    <p class="sub">Write, search, filter by topic, export, and summarize with GPT (via Vercel API).</p>
-
-    <div class="grid">
-      <!-- Left: compose & tools -->
-      <div class="card">
-        <h3 style="margin-top:4px">New Entry</h3>
-        <div class="row">
-          <input id="topics" placeholder="Topics (comma separated e.g. trauma, therapy)" />
-          <input id="when" type="datetime-local" />
-        </div>
-        <textarea id="content" placeholder="Write your thoughts..."></textarea>
-        <div class="actions" style="margin-top:8px">
-          <button class="btn" onclick="addEntry()">Add Entry</button>
-          <button class="btn secondary" onclick="exportPDF()">Export PDF</button>
-          <button class="btn secondary" onclick="exportJSON()">Export JSON</button>
-        </div>
-        <p class="hint">Entries are saved in your browser (localStorage). Export JSON to back up.</p>
+    <header class="card" style="margin-bottom:16px">
+      <h1 class="title">Healing Journey Diary</h1>
+      <div class="row">
+        <button class="btn btn-rainbow" id="addBtn">Add Entry</button>
+        <button class="btn" id="exportBtn" title="Export visible entries as PDF">Export as PDF</button>
       </div>
+    </header>
 
-      <!-- Right: search + summarize -->
-      <div class="card">
-        <h3 style="margin-top:4px">Search & Summarize</h3>
-        <input id="search" placeholder="Search in topics/content..." oninput="render()" />
-        <div id="topicFilters" class="filters"></div>
-
-        <div class="actions" style="margin-top:8px">
-          <button class="btn" onclick="summarizeSelected()">Summarize Selected Topics (GPT)</button>
-          <button class="btn" onclick="summarizeAll()">Summarize All (GPT)</button>
+    <!-- Add Entry -->
+    <section class="card" style="margin-bottom:16px">
+      <h3 class="box-title">New Entry</h3>
+      <div class="grid">
+        <div class="col-6">
+          <label for="topic">Topic</label>
+          <input id="topic" type="text" placeholder="e.g. Anxiety, Gratitude, Wins" />
         </div>
-        <p class="hint muted">For GPT summaries you must add the Vercel API route & set your OPENAI_API_KEY (steps below).</p>
-        <div id="summary" class="summary" style="display:none"></div>
+        <div class="col-6">
+          <label for="mood">Mood</label>
+          <select id="mood">
+            <option value="😊 Joyful">😊 Joyful</option>
+            <option value="🙂 Calm">🙂 Calm</option>
+            <option value="😐 Neutral">😐 Neutral</option>
+            <option value="😕 Uneasy">😕 Uneasy</option>
+            <option value="😞 Low">😞 Low</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label for="text">Entry</label>
+          <textarea id="text" placeholder="Write freely. You can add tags below…"></textarea>
+        </div>
+        <div class="col-12">
+          <label for="tagsInput">Tags (comma or Enter)</label>
+          <input id="tagsInput" type="text" placeholder="e.g. breathing, therapy, progress" />
+          <div class="toolbar" id="tagsBar" style="margin-top:8px"></div>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <!-- Filters / Search -->
+    <section class="card" style="margin-bottom:16px">
+      <h3 class="box-title">Search & Filter</h3>
+      <div class="grid">
+        <div class="col-4">
+          <label for="search">Search text</label>
+          <input id="search" type="text" placeholder="Find words in entries…" />
+        </div>
+        <div class="col-4">
+          <label for="filterTopic">Filter by topic</label>
+          <input id="filterTopic" type="text" placeholder="Type a topic name…" />
+        </div>
+        <div class="col-4">
+          <label for="filterTag">Filter by tag</label>
+          <input id="filterTag" type="text" placeholder="Type a tag…" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Summaries -->
+    <section class="card" style="margin-bottom:16px">
+      <h3 class="box-title">Summarize Topics</h3>
+      <div class="grid">
+        <div class="col-12">
+          <label for="topicsMulti">Choose topics to summarize</label>
+          <select id="topicsMulti" multiple size="5" style="width:100%"></select>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-rainbow" id="summarizeBtn">Summarize Selected Topics</button>
+        </div>
+        <div class="col-12">
+          <div id="summaryOut" class="entry" style="display:none"></div>
+        </div>
+      </div>
+    </section>
 
     <!-- Entries list -->
-    <div class="card" style="margin-top:16px">
-      <h3 style="margin-top:4px">Entries</h3>
-      <div id="entries"></div>
-      <div id="emptyState" class="no-data" style="display:none">No entries yet — add one above.</div>
-    </div>
+    <section class="card">
+      <h3 class="box-title">Entries</h3>
+      <div id="entries" class="list"></div>
+      <p id="empty" class="muted" style="margin-top:8px; display:none;">No entries found.</p>
+    </section>
   </div>
 
-<script>
-  // ---------- Storage ----------
-  const LS_KEY = "healingDiary.entries.v2";
-  let entries = load();
+  <script>
+    // Simple storage helpers
+    const load = (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
+    const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
-  function load(){
-    try{ return JSON.parse(localStorage.getItem(LS_KEY)) || [] }catch{ return [] }
-  }
-  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(entries)) }
+    let entries = load('hj_entries', []);
+    let draftTags = [];
 
-  // ---------- Helpers ----------
-  const byId = id => document.getElementById(id);
-  const unique = arr => [...new Set(arr)];
-  const parseTopics = str => str.split(",").map(t => t.trim()).filter(Boolean);
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      addBtn: $('addBtn'), exportBtn: $('exportBtn'),
+      topic: $('topic'), mood: $('mood'), text: $('text'),
+      tagsInput: $('tagsInput'), tagsBar: $('tagsBar'),
+      search: $('search'), filterTopic: $('filterTopic'), filterTag: $('filterTag'),
+      entries: $('entries'), empty: $('empty'),
+      topicsMulti: $('topicsMulti'), summarizeBtn: $('summarizeBtn'), summaryOut: $('summaryOut'),
+    };
 
-  function addEntry(){
-    const topics = parseTopics(byId("topics").value);
-    const content = byId("content").value.trim();
-    const when = byId("when").value ? new Date(byId("when").value) : new Date();
-    if(!topics.length || !content){ alert("Please add at least one topic and some content."); return }
-
-    entries.unshift({
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      topics,
-      content,
-      dateISO: when.toISOString()
-    });
-    save();
-    byId("topics").value = "";
-    byId("content").value = "";
-    byId("when").value = "";
-    render();
-  }
-
-  function updateTopicsFilterUI(){
-    const all = unique(entries.flatMap(e => e.topics)).sort((a,b)=>a.localeCompare(b));
-    const container = byId("topicFilters");
-    container.innerHTML = "";
-    all.forEach(t=>{
-      const id = "t_" + t.replace(/\W+/g,"_");
-      const wrap = document.createElement("label");
-      wrap.className = "filter-item";
-      wrap.innerHTML = `<input type="checkbox" id="${id}" data-topic="${t}"><span>${t}</span>`;
-      container.appendChild(wrap);
-      byId(id).addEventListener("change", render);
-    });
-  }
-
-  function getSelectedTopics(){
-    return [...document.querySelectorAll('#topicFilters input[type="checkbox"]:checked')].map(c => c.dataset.topic);
-  }
-
-  function render(){
-    // list
-    const q = byId("search").value.toLowerCase();
-    const selected = getSelectedTopics();
-    const list = byId("entries");
-    const empty = byId("emptyState");
-    list.innerHTML = "";
-
-    let filtered = entries.filter(e=>{
-      const hitQ = !q || e.content.toLowerCase().includes(q) || e.topics.join(" ").toLowerCase().includes(q);
-      const hitTopic = !selected.length || selected.some(t => e.topics.includes(t));
-      return hitQ && hitTopic;
-    });
-
-    if(!filtered.length){
-      empty.style.display = "block";
-    } else {
-      empty.style.display = "none";
-      filtered.forEach(e=>{
-        const div = document.createElement("div");
-        div.className = "entry";
-        const date = new Date(e.dateISO).toLocaleString();
-        div.innerHTML = `
-          <div class="top">
-            <div class="chips">${e.topics.map(t=>`<span class="chip">${t}</span>`).join("")}</div>
-            <div class="muted">${date}</div>
-          </div>
-          <div style="margin-top:8px">${escapeHTML(e.content).replace(/\n/g,"<br>")}</div>
-          <div class="actions" style="margin-top:8px">
-            <button class="btn secondary" onclick="editEntry('${e.id}')">Edit</button>
-            <button class="btn warn" onclick="deleteEntry('${e.id}')">Delete</button>
-          </div>`;
-        list.appendChild(div);
+    // ------- TAGS -------
+    const renderDraftTags = () => {
+      els.tagsBar.innerHTML = '';
+      draftTags.forEach((t, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip'; chip.dataset.hue = i % 5;
+        chip.innerHTML = `<span>#${escapeHtml(t)}</span><span class="x" title="Remove tag" data-i="${i}">✕</span>`;
+        els.tagsBar.appendChild(chip);
       });
+    };
+
+    const addDraftTagsFromInput = () => {
+      const raw = els.tagsInput.value.trim();
+      if (!raw) return;
+      raw.split(',').map(s => s.trim()).filter(Boolean).forEach(v=>{
+        if (!draftTags.includes(v.toLowerCase())) draftTags.push(v.toLowerCase());
+      });
+      els.tagsInput.value = '';
+      renderDraftTags();
+    };
+
+    els.tagsInput.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter' || e.key === ','){ e.preventDefault(); addDraftTagsFromInput(); }
+      if (e.key === 'Backspace' && !els.tagsInput.value && draftTags.length){ draftTags.pop(); renderDraftTags(); }
+    });
+    els.tagsBar.addEventListener('click', (e)=>{
+      const i = e.target.dataset.i;
+      if (i !== undefined){ draftTags.splice(Number(i),1); renderDraftTags(); }
+    });
+
+    // ------- ADD ENTRY -------
+    els.addBtn.addEventListener('click', ()=>{
+      const topic = els.topic.value.trim() || 'General';
+      const mood = els.mood.value;
+      const text = els.text.value.trim();
+      if (!text){ alert('Please write something in the entry.'); return; }
+      const now = new Date().toISOString();
+      const tags = [...draftTags];
+      entries.unshift({ id: crypto.randomUUID(), topic, mood, text, tags, createdAt: now });
+      save('hj_entries', entries);
+      // clear
+      els.text.value = ''; els.topic.value = ''; draftTags = []; renderDraftTags();
+      refresh();
+    });
+
+    // ------- RENDER LIST -------
+    function refresh(){
+      // topics list for multi-select
+      const topics = [...new Set(entries.map(e=>e.topic))].sort((a,b)=>a.localeCompare(b));
+      const selected = new Set([...els.topicsMulti.options].filter(o=>o.selected).map(o=>o.value));
+      els.topicsMulti.innerHTML = topics.map(t=>`<option value="${escapeHtml(t)}" ${selected.has(t)?'selected':''}>${escapeHtml(t)}</option>`).join('');
+
+      // filters
+      const q = els.search.value.trim().toLowerCase();
+      const fTopic = els.filterTopic.value.trim().toLowerCase();
+      const fTag = els.filterTag.value.trim().toLowerCase();
+
+      const filtered = entries.filter(e=>{
+        const textHit = !q || (e.text.toLowerCase().includes(q) || e.topic.toLowerCase().includes(q) || e.tags.some(t=>t.includes(q)));
+        const topicHit = !fTopic || e.topic.toLowerCase().includes(fTopic);
+        const tagHit = !fTag || e.tags.some(t => t.includes(fTag));
+        return textHit && topicHit && tagHit;
+      });
+
+      els.entries.innerHTML = filtered.map((e,i)=>renderEntry(e,i)).join('');
+      els.empty.style.display = filtered.length ? 'none' : 'block';
     }
 
-    // refresh filters whenever the topic universe changes
-    updateTopicsFilterUI();
-  }
+    function renderEntry(e, index){
+      const date = new Date(e.createdAt).toLocaleString();
+      const tagHtml = e.tags.map((t,i)=>`<span class="chip" data-hue="${i%5}">#${escapeHtml(t)}</span>`).join(' ');
+      return `
+        <article class="entry">
+          <h4 class="section-title" style="margin:0">
+            <span style="background:linear-gradient(90deg,var(--rp${index%7}),var(--rp${(index+2)%7}),var(--rp${(index+4)%7}));
+                         -webkit-background-clip:text;background-clip:text;color:transparent;">
+              ${escapeHtml(e.topic)}
+            </span>
+          </h4>
+          <div class="meta">${escapeHtml(e.mood)} · ${date}</div>
+          <div>${nl2br(escapeHtml(e.text))}</div>
+          <div class="tags">${tagHtml}</div>
+        </article>
+      `;
+    }
 
-  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+    ['search','filterTopic','filterTag'].forEach(id=>$(id).addEventListener('input', refresh));
 
-  function editEntry(id){
-    const i = entries.findIndex(e=>e.id===id);
-    if(i<0) return;
-    const e = entries[i];
-    const newTopics = prompt("Edit topics (comma separated):", e.topics.join(", "));
-    if(newTopics===null) return; // cancelled
-    const newContent = prompt("Edit content:", e.content);
-    if(newContent===null) return;
-    e.topics = parseTopics(newTopics);
-    e.content = newContent.trim();
-    save(); render();
-  }
+    // ------- SUMMARY (client-side heuristic) -------
+    els.summarizeBtn.addEventListener('click', ()=>{
+      const chosen = [...els.topicsMulti.options].filter(o=>o.selected).map(o=>o.value);
+      if (!chosen.length){ alert('Select one or more topics first.'); return; }
+      const group = entries.filter(e=> chosen.includes(e.topic));
+      if (!group.length){ alert('No entries for selected topics.'); return; }
 
-  function deleteEntry(id){
-    if(!confirm("Delete this entry?")) return;
-    entries = entries.filter(e=>e.id!==id);
-    save(); render();
-  }
-
-  // ---------- Export ----------
-  function exportJSON(){
-    const blob = new Blob([JSON.stringify(entries,null,2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "healing_diary.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function exportPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({unit:"pt", format:"a4"});
-    const lineH = 16;
-    const margin = 40;
-    const maxW = 515; // page width 595 - margins
-    let y = margin;
-
-    doc.setFont("helvetica","bold"); doc.setFontSize(16);
-    doc.text("Healing Journey Diary", margin, y); y += 24;
-
-    entries.forEach((e,idx)=>{
-      const title = `• ${new Date(e.dateISO).toLocaleString()}  —  [${e.topics.join(", ")}]`;
-      doc.setFont("helvetica","bold"); doc.setFontSize(12);
-      y = maybePageBreak(doc, y, margin, 780);
-      doc.text(title, margin, y); y += lineH;
-
-      doc.setFont("helvetica","normal"); doc.setFontSize(11);
-      const lines = doc.splitTextToSize(e.content, maxW);
-      lines.forEach(line=>{
-        y = maybePageBreak(doc, y, margin, 780);
-        doc.text(line, margin, y); y += lineH;
-      });
-      y += 6;
+      const text = group.map(e=>e.text).join(' ');
+      const summary = quickSummarize(text);
+      els.summaryOut.style.display = 'block';
+      els.summaryOut.innerHTML = `
+        <div class="section-title" style="margin-bottom:6px">Summary (${chosen.join(', ')})</div>
+        <div>${nl2br(escapeHtml(summary))}</div>
+      `;
     });
 
-    doc.save("Healing_Journey_Diary.pdf");
-  }
-  function maybePageBreak(doc, y, margin, limit){
-    if(y > limit){ doc.addPage(); return margin; }
-    return y;
-  }
-
-  // ---------- GPT Summaries (via Vercel API) ----------
-  async function summarizeSelected(){
-    const topics = getSelectedTopics();
-    if(!topics.length){ alert("Tick at least one topic in the filters."); return }
-    await doSummarize({ topics });
-  }
-  async function summarizeAll(){
-    if(!entries.length){ alert("No entries to summarize."); return }
-    await doSummarize({ topics: [] }); // empty = all
-  }
-
-  async function doSummarize({topics}){
-    showSummary("Working…");
-    try{
-      const payload = {
-        topics,
-        entries,
-        instructions: "Write concise bullet-point summaries per topic, then a short overall reflection and 3 actionable suggestions."
-      };
-      const res = await fetch("/api/summarize", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok){
-        const t = await res.text();
-        throw new Error(`API error ${res.status}: ${t}`);
-      }
-      const data = await res.json();
-      showSummary(data.summary || "(No summary returned.)");
-    }catch(err){
-      showSummary("Summary failed. Did you set OPENAI_API_KEY on Vercel and create /api/summarize?\n\n" + err.message);
+    // Simple frequency + first-sentences extractor (no API needed)
+    function quickSummarize(text){
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(s=>s.trim().length>0);
+      if (sentences.length <= 3) return sentences.join(' ');
+      const words = text.toLowerCase().match(/[a-z’']+/g) || [];
+      const stop = new Set('i me my myself we our you your yours he she it they them a an the and or but if then so to of in on for with from at by as is are was were be been being feel feels felt feeling today this that those these not very really just have has had do did doing will would can could should may might'.split(' '));
+      const freq = new Map();
+      for (const w of words){ if (!stop.has(w) && w.length>2) freq.set(w, (freq.get(w)||0)+1); }
+      const score = s => (s.toLowerCase().match(/[a-z’']+/g)||[]).reduce((acc,w)=>acc+(freq.get(w)||0),0);
+      const ranked = sentences.map(s=>({s,score:score(s)})).sort((a,b)=>b.score-a.score).slice(0,3).map(o=>o.s);
+      // include leading sentence for context
+      const lead = sentences[0];
+      const out = [lead, ...ranked.filter(s=>s!==lead)].slice(0,4);
+      return out.join(' ');
     }
-  }
 
-  function showSummary(text){
-    const box = byId("summary");
-    box.style.display = "block";
-    box.textContent = text;
-  }
+    // ------- PDF EXPORT -------
+    els.exportBtn.addEventListener('click', async ()=>{
+      const target = document.querySelector('section.card:last-of-type'); // entries card
+      await exportElementToPDF(target, 'Healing-Diary.pdf');
+    });
 
-  // ---------- boot ----------
-  updateTopicsFilterUI();
-  render();
-</script>
+    async function exportElementToPDF(node, filename){
+      const { jsPDF } = window.jspdf;
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
+      const img = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p','pt','a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+      const w = canvas.width * ratio, h = canvas.height * ratio;
+      pdf.addImage(img, 'PNG', (pageW - w)/2, 24, w, h);
+      pdf.save(filename);
+    }
+
+    // ------- UTIL -------
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    function nl2br(s){ return s.replace(/\n/g,'<br>'); }
+
+    // ------- INIT -------
+    function init(){
+      renderDraftTags();
+      refresh();
+    }
+    init();
+  </script>
 </body>
 </html>
