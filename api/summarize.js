@@ -1,10 +1,6 @@
-// api/summarize.ts
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import OpenAI from "openai";
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// api/summarize.js
+export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Use POST.");
-
   const { entries, topics } = req.body || {};
   if (!Array.isArray(entries) || entries.length === 0) {
     return res.status(400).send("Missing entries.");
@@ -13,49 +9,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).send("OPENAI_API_KEY not set.");
 
-  const client = new OpenAI({ apiKey });
-
-  // Build a compact corpus
   const corpus = entries
-    .sort((a,b)=>a.created-b.created)
+    .sort((a, b) => a.created - b.created)
     .map(e => {
       const d = new Date(e.created).toLocaleString();
-      const t = (e.topics||"").trim();
-      return `- [${d}] ${t ? `(${t}) ` : ""}${e.text}`;
+      const t = (e.topics || "").trim();
+      const title = (e.title || "").trim();
+      const line = [title, e.text].filter(Boolean).join(" — ");
+      return `- [${d}] ${t ? `(${t}) ` : ""}${line}`;
     })
     .join("\n");
 
-  const focus = (topics || "").trim();
   const system = `
-You are a calm, clear editorial assistant. Summarize journal entries into a 
-newsletter-ready brief with:
-- 3–6 bullet highlights (actionable + specific)
-- A short “Themes & patterns” paragraph
-- A short “Next steps” checklist (2–5 items)
-Write with warmth, brevity, and concrete phrasing. Avoid therapy jargon. 
-If topics were provided, focus on them.`.trim();
+You are an editorial assistant. Summarize journal entries into a newsletter-ready brief:
+- Start with a friendly 1–2 sentence intro.
+- Then 3–6 bullet highlights (actionable, concrete; keep each to one line).
+- Add a short "Themes & Patterns" paragraph.
+- End with a "Next steps" checklist (2–5 items) using checkboxes [ ].
+Use plain markdown. If TOPICS are provided, prioritize those.
+`.trim();
 
   const user = `
-TOPICS: ${focus || "(none)"}
+TOPICS FOCUS: ${topics?.trim() || "(none)"}
 
-ENTRIES (most recent week):
+ENTRIES (last 7 days):
 ${corpus}
 `.trim();
 
   try {
-    const completion = await client.chat.completions.create({
-      // If you have access to a newer model, you can swap the model name.
-      model: "gpt-4o-mini",
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user }
-      ]
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user }
+        ]
+      })
     });
 
-    const summary = completion.choices?.[0]?.message?.content ?? "";
+    if (!r.ok) {
+      const text = await r.text();
+      return res.status(500).send(text);
+    }
+    const data = await r.json();
+    const summary = data?.choices?.[0]?.message?.content || "";
     return res.status(200).json({ summary });
-  } catch (err: any) {
-    return res.status(500).send(err?.message || "OpenAI error.");
+  } catch (e) {
+    return res.status(500).send(e?.message || "OpenAI error");
   }
 }
